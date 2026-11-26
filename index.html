@@ -110,7 +110,7 @@
         <span id="hud-age" class="text-slate-300">次郎(40歳)</span>
       </div>
       <div class="flex items-center gap-1.5">
-        <span id="hud-money" class="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/50 text-amber-300 font-black">¥100,000</span>
+        <span id="hud-money" class="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/50 text-amber-300 font-black">¥20,000</span>
         <button type="button" onclick="AudioSys.toggleMute()" class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-600 text-[10px]" title="BGM/SE切替">
           <span id="mute-icon">🔊</span><span class="keycap">M</span>
         </button>
@@ -502,8 +502,10 @@ function svgAssembledPC(pc, size = 110) {
 }
 
 /* ============================================================================
-   4. HARDWARE CATALOG (2027 - 2035 GENERATIONAL PROGRESSION)
+   4. HARDWARE CATALOG (REALISTIC ENTRY/LOW-SPEC + 2027-2035 PROGRESSION)
    Socket & Memory compatibility:
+   - LGA1200 -> DDR4
+   - AM4     -> DDR4
    - LGA1700 -> DDR5
    - AM5     -> DDR5
    - LGA1851 -> DDR5
@@ -524,120 +526,144 @@ const PART_CATEGORIES = [
 ];
 
 const CATALOG = [
-  // --- CPU ---
-  { id: 'cpu_1', cat: 'cpu', name: 'Core i5-14400F 中古世代', socket: 'LGA1700', bench: 2400,  watt: 65,  price: 16000,  dur: 110, year: 2027, tier: 1 },
-  { id: 'cpu_2', cat: 'cpu', name: 'Ryzen 5 7600',            socket: 'AM5',     bench: 3800,  watt: 65,  price: 24000,  dur: 120, year: 2027, tier: 2 },
-  { id: 'cpu_3', cat: 'cpu', name: 'Core Ultra 7 265K',       socket: 'LGA1851', bench: 7200,  watt: 125, price: 46000,  dur: 135, year: 2027, tier: 3 },
-  { id: 'cpu_4', cat: 'cpu', name: 'Ryzen 9 9950X Pro (2027)',socket: 'AM5',     bench: 11800, watt: 170, price: 78000,  dur: 155, year: 2027, tier: 4 },
-  { id: 'cpu_5', cat: 'cpu', name: 'Ryzen 9 11950X (2029)',   socket: 'AM6',     bench: 16500, watt: 170, price: 96000,  dur: 185, year: 2029, tier: 4 },
-  { id: 'cpu_6', cat: 'cpu', name: 'Core Nova 9 490K (2031)', socket: 'LGA1954', bench: 23500, watt: 190, price: 128000, dur: 220, year: 2031, tier: 4 },
-  { id: 'cpu_7', cat: 'cpu', name: 'Ryzen AI-X 13950X3D',     socket: 'AM6',     bench: 32000, watt: 180, price: 158000, dur: 260, year: 2033, tier: 5 },
-  { id: 'cpu_8', cat: 'cpu', name: 'QuantumCore Q9-2035',     socket: 'Q-SOC',   bench: 44000, watt: 210, price: 205000, dur: 310, year: 2035, tier: 5 },
+  // --- CPU (低価格・旧世代/エントリーから最上位まで) ---
+  { id: 'cpu_0a', cat: 'cpu', name: 'Core i3-10105F (事務/格安)', socket: 'LGA1200', bench: 950,   watt: 65,  price: 6800,   dur: 95,  year: 2027, tier: 1 },
+  { id: 'cpu_0b', cat: 'cpu', name: 'Ryzen 5 3600 (定番格安)',     socket: 'AM4',     bench: 1350,  watt: 65,  price: 9200,   dur: 100, year: 2027, tier: 1 },
+  { id: 'cpu_0c', cat: 'cpu', name: 'Core i5-12400F (コスパ入門)', socket: 'LGA1700', bench: 1950,  watt: 65,  price: 14800,  dur: 108, year: 2027, tier: 1 },
+  { id: 'cpu_1',  cat: 'cpu', name: 'Core i5-14400F',              socket: 'LGA1700', bench: 2800,  watt: 65,  price: 23500,  dur: 115, year: 2027, tier: 1 },
+  { id: 'cpu_2',  cat: 'cpu', name: 'Ryzen 5 7600',                socket: 'AM5',     bench: 4400,  watt: 65,  price: 31800,  dur: 125, year: 2027, tier: 2 },
+  { id: 'cpu_3',  cat: 'cpu', name: 'Core Ultra 7 265K',           socket: 'LGA1851', bench: 8200,  watt: 125, price: 54800,  dur: 140, year: 2027, tier: 3 },
+  { id: 'cpu_4',  cat: 'cpu', name: 'Ryzen 9 9950X Pro (2027)',    socket: 'AM5',     bench: 13500, watt: 170, price: 89800,  dur: 160, year: 2027, tier: 4 },
+  { id: 'cpu_5',  cat: 'cpu', name: 'Ryzen 9 11950X (2029)',       socket: 'AM6',     bench: 19000, watt: 170, price: 108000, dur: 190, year: 2029, tier: 4 },
+  { id: 'cpu_6',  cat: 'cpu', name: 'Core Nova 9 490K (2031)',     socket: 'LGA1954', bench: 26500, watt: 190, price: 138000, dur: 225, year: 2031, tier: 4 },
+  { id: 'cpu_7',  cat: 'cpu', name: 'Ryzen AI-X 13950X3D',         socket: 'AM6',     bench: 36000, watt: 180, price: 168000, dur: 265, year: 2033, tier: 5 },
+  { id: 'cpu_8',  cat: 'cpu', name: 'QuantumCore Q9-2035',         socket: 'Q-SOC',   bench: 49000, watt: 210, price: 218000, dur: 310, year: 2035, tier: 5 },
 
   // --- CPU COOLER ---
-  { id: 'col_1', cat: 'cooler', name: 'リテール空冷クーラー',        cool: 0.04, bench: 200,  watt: 5,  price: 2500,  dur: 100, year: 2027, tier: 1 },
-  { id: 'col_2', cat: 'cooler', name: 'サイドフロー大型空冷虎徹Z',   cool: 0.10, bench: 650,  watt: 8,  price: 5800,  dur: 125, year: 2027, tier: 2 },
-  { id: 'col_3', cat: 'cooler', name: '240mm簡易水冷 AuraCool',     cool: 0.17, bench: 1400, watt: 15, price: 13500, dur: 150, year: 2027, tier: 3 },
-  { id: 'col_4', cat: 'cooler', name: '360mm液晶簡易水冷 Frost360', cool: 0.24, bench: 2400, watt: 22, price: 26000, dur: 195, year: 2029, tier: 4 },
-  { id: 'col_5', cat: 'cooler', name: 'ペルチェハイブリッド冷却改',  cool: 0.30, bench: 3500, watt: 35, price: 42000, dur: 245, year: 2032, tier: 5 },
-  { id: 'col_6', cat: 'cooler', name: '極低温液体窒素循環ユニット',  cool: 0.36, bench: 4900, watt: 50, price: 68000, dur: 300, year: 2035, tier: 5 },
+  { id: 'col_0', cat: 'cooler', name: '純正薄型ファン',              cool: 0.02, bench: 120,  watt: 4,  price: 1600,  dur: 85,  year: 2027, tier: 1 },
+  { id: 'col_1', cat: 'cooler', name: 'リテール空冷クーラー',        cool: 0.04, bench: 220,  watt: 5,  price: 2800,  dur: 100, year: 2027, tier: 1 },
+  { id: 'col_2', cat: 'cooler', name: 'サイドフロー大型空冷虎徹Z',   cool: 0.10, bench: 700,  watt: 8,  price: 6200,  dur: 125, year: 2027, tier: 2 },
+  { id: 'col_3', cat: 'cooler', name: '240mm簡易水冷 AuraCool',     cool: 0.17, bench: 1500, watt: 15, price: 14800, dur: 150, year: 2027, tier: 3 },
+  { id: 'col_4', cat: 'cooler', name: '360mm液晶簡易水冷 Frost360', cool: 0.24, bench: 2600, watt: 22, price: 27800, dur: 195, year: 2029, tier: 4 },
+  { id: 'col_5', cat: 'cooler', name: 'ペルチェハイブリッド冷却改',  cool: 0.30, bench: 3800, watt: 35, price: 44800, dur: 245, year: 2032, tier: 5 },
+  { id: 'col_6', cat: 'cooler', name: '極低温液体窒素循環ユニット',  cool: 0.36, bench: 5200, watt: 50, price: 69800, dur: 300, year: 2035, tier: 5 },
 
   // --- MOTHERBOARD ---
-  { id: 'mb_1', cat: 'mobo', name: 'H610M エントリーボード',     socket: 'LGA1700', ramType: 'DDR5', bench: 450,  watt: 25, price: 11000, dur: 110, year: 2027, tier: 1 },
-  { id: 'mb_2', cat: 'mobo', name: 'B650M Gaming WiFi',          socket: 'AM5',     ramType: 'DDR5', bench: 1100, watt: 30, price: 19000, dur: 125, year: 2027, tier: 2 },
-  { id: 'mb_3', cat: 'mobo', name: 'Z890 AORUS ELITE',           socket: 'LGA1851', ramType: 'DDR5', bench: 2200, watt: 40, price: 34000, dur: 155, year: 2027, tier: 3 },
-  { id: 'mb_4', cat: 'mobo', name: 'X970E Taichi Neural (2029)', socket: 'AM6',     ramType: 'DDR6', bench: 3600, watt: 45, price: 48000, dur: 190, year: 2029, tier: 4 },
-  { id: 'mb_5', cat: 'mobo', name: 'Z1190 ROG MAXIMUS (2031)',   socket: 'LGA1954', ramType: 'DDR6', bench: 5200, watt: 55, price: 65000, dur: 230, year: 2031, tier: 4 },
-  { id: 'mb_6', cat: 'mobo', name: 'Q990 Quantum Link (2035)',   socket: 'Q-SOC',   ramType: 'DDR7', bench: 7800, watt: 65, price: 89000, dur: 290, year: 2035, tier: 5 },
+  { id: 'mb_0a', cat: 'mobo', name: 'H410M 格安事務ボード',      socket: 'LGA1200', ramType: 'DDR4', bench: 220,  watt: 20, price: 5800,  dur: 90,  year: 2027, tier: 1 },
+  { id: 'mb_0b', cat: 'mobo', name: 'A520M 廉価AM4ボード',       socket: 'AM4',     ramType: 'DDR4', bench: 320,  watt: 22, price: 7400,  dur: 98,  year: 2027, tier: 1 },
+  { id: 'mb_1',  cat: 'mobo', name: 'H610M エントリーボード',    socket: 'LGA1700', ramType: 'DDR5', bench: 500,  watt: 25, price: 13800, dur: 112, year: 2027, tier: 1 },
+  { id: 'mb_2',  cat: 'mobo', name: 'B650M Gaming WiFi',         socket: 'AM5',     ramType: 'DDR5', bench: 1200, watt: 30, price: 22800, dur: 128, year: 2027, tier: 2 },
+  { id: 'mb_3',  cat: 'mobo', name: 'Z890 AORUS ELITE',          socket: 'LGA1851', ramType: 'DDR5', bench: 2400, watt: 40, price: 38800, dur: 155, year: 2027, tier: 3 },
+  { id: 'mb_4',  cat: 'mobo', name: 'X970E Taichi Neural (2029)',socket: 'AM6',     ramType: 'DDR6', bench: 3900, watt: 45, price: 52000, dur: 190, year: 2029, tier: 4 },
+  { id: 'mb_5',  cat: 'mobo', name: 'Z1190 ROG MAXIMUS (2031)',  socket: 'LGA1954', ramType: 'DDR6', bench: 5600, watt: 55, price: 69000, dur: 230, year: 2031, tier: 4 },
+  { id: 'mb_6',  cat: 'mobo', name: 'Q990 Quantum Link (2035)',  socket: 'Q-SOC',   ramType: 'DDR7', bench: 8400, watt: 65, price: 94000, dur: 290, year: 2035, tier: 5 },
 
   // --- MEMORY ---
-  { id: 'ram_1', cat: 'ram', name: 'DDR5-4800 16GB (8GB×2)',   ramType: 'DDR5', bench: 650,  watt: 8,  price: 7500,  dur: 115, year: 2027, tier: 1 },
-  { id: 'ram_2', cat: 'ram', name: 'DDR5-6000 32GB RGB',       ramType: 'DDR5', bench: 1650, watt: 12, price: 15500, dur: 135, year: 2027, tier: 2 },
-  { id: 'ram_3', cat: 'ram', name: 'DDR5-8000 96GB AI-Kit',    ramType: 'DDR5', bench: 3600, watt: 16, price: 34000, dur: 170, year: 2027, tier: 3 },
-  { id: 'ram_4', cat: 'ram', name: 'DDR6-9600 64GB (2029)',    ramType: 'DDR6', bench: 5800, watt: 18, price: 42000, dur: 205, year: 2029, tier: 4 },
-  { id: 'ram_5', cat: 'ram', name: 'DDR6-12000 128GB (2032)',  ramType: 'DDR6', bench: 8800, watt: 24, price: 64000, dur: 250, year: 2032, tier: 5 },
-  { id: 'ram_6', cat: 'ram', name: 'DDR7-16000 256GB Optical', ramType: 'DDR7', bench: 12500,watt: 28, price: 92000, dur: 300, year: 2035, tier: 5 },
+  { id: 'ram_0a', cat: 'ram', name: 'DDR4-2666 8GB (4GB×2)',    ramType: 'DDR4', bench: 240,   watt: 5,  price: 2600,  dur: 90,  year: 2027, tier: 1 },
+  { id: 'ram_0b', cat: 'ram', name: 'DDR4-3200 16GB (8GB×2)',   ramType: 'DDR4', bench: 480,   watt: 7,  price: 4800,  dur: 105, year: 2027, tier: 1 },
+  { id: 'ram_1',  cat: 'ram', name: 'DDR5-4800 16GB (8GB×2)',   ramType: 'DDR5', bench: 750,   watt: 8,  price: 9800,  dur: 115, year: 2027, tier: 1 },
+  { id: 'ram_2',  cat: 'ram', name: 'DDR5-6000 32GB RGB',       ramType: 'DDR5', bench: 1850,  watt: 12, price: 18800, dur: 135, year: 2027, tier: 2 },
+  { id: 'ram_3',  cat: 'ram', name: 'DDR5-8000 96GB AI-Kit',    ramType: 'DDR5', bench: 4000,  watt: 16, price: 38800, dur: 170, year: 2027, tier: 3 },
+  { id: 'ram_4',  cat: 'ram', name: 'DDR6-9600 64GB (2029)',    ramType: 'DDR6', bench: 6400,  watt: 18, price: 46800, dur: 205, year: 2029, tier: 4 },
+  { id: 'ram_5',  cat: 'ram', name: 'DDR6-12000 128GB (2032)',  ramType: 'DDR6', bench: 9600,  watt: 24, price: 68000, dur: 250, year: 2032, tier: 5 },
+  { id: 'ram_6',  cat: 'ram', name: 'DDR7-16000 256GB Optical', ramType: 'DDR7', bench: 13500, watt: 28, price: 98000, dur: 300, year: 2035, tier: 5 },
 
-  // --- GPU ---
-  { id: 'gpu_1', cat: 'gpu', name: 'RTX 3060 12GB (定番中古)',    bench: 2800,  watt: 170, price: 26000,  dur: 110, year: 2027, tier: 1 },
-  { id: 'gpu_2', cat: 'gpu', name: 'RTX 4060 Ti 8GB',            bench: 6200,  watt: 160, price: 44000,  dur: 120, year: 2027, tier: 2 },
-  { id: 'gpu_3', cat: 'gpu', name: 'RTX 5070 12GB GDDR7',        bench: 12500, watt: 250, price: 82000,  dur: 145, year: 2027, tier: 3 },
-  { id: 'gpu_4', cat: 'gpu', name: 'RTX 5090 AI-Edition (2027)', bench: 24500, watt: 450, price: 215000, dur: 185, year: 2027, tier: 4 },
-  { id: 'gpu_5', cat: 'gpu', name: 'RTX 6070 Ti 16GB (2029)',    bench: 31000, watt: 300, price: 145000, dur: 210, year: 2029, tier: 4 },
-  { id: 'gpu_6', cat: 'gpu', name: 'RTX 6090 32GB AI-Core',      bench: 44000, watt: 480, price: 285000, dur: 250, year: 2029, tier: 5 },
-  { id: 'gpu_7', cat: 'gpu', name: 'RTX 7080 24GB (2032)',       bench: 56000, watt: 380, price: 225000, dur: 275, year: 2032, tier: 5 },
-  { id: 'gpu_8', cat: 'gpu', name: 'NeuralTensor RTX-8090 48GB', bench: 74000, watt: 520, price: 380000, dur: 325, year: 2035, tier: 5 },
+  // --- GPU (GTX 1650 / GTX 1660 SUPER / Arc A380 など低スペック帯を追加) ---
+  { id: 'gpu_0a', cat: 'gpu', name: 'GTX 1650 4GB (補助電源不要)',   bench: 680,   watt: 75,  price: 11800,  dur: 85,  year: 2027, tier: 1 },
+  { id: 'gpu_0b', cat: 'gpu', name: 'Arc A380 6GB (格安エントリー)', bench: 950,   watt: 75,  price: 14800,  dur: 92,  year: 2027, tier: 1 },
+  { id: 'gpu_0c', cat: 'gpu', name: 'GTX 1660 SUPER 6GB (旧定番)',   bench: 1450,  watt: 125, price: 17800,  dur: 98,  year: 2027, tier: 1 },
+  { id: 'gpu_1',  cat: 'gpu', name: 'RTX 3060 12GB (定番中古)',      bench: 2900,  watt: 170, price: 32800,  dur: 112, year: 2027, tier: 1 },
+  { id: 'gpu_2',  cat: 'gpu', name: 'RTX 4060 Ti 8GB',              bench: 6600,  watt: 160, price: 54800,  dur: 122, year: 2027, tier: 2 },
+  { id: 'gpu_3',  cat: 'gpu', name: 'RTX 5070 12GB GDDR7',          bench: 13800, watt: 250, price: 94800,  dur: 148, year: 2027, tier: 3 },
+  { id: 'gpu_4',  cat: 'gpu', name: 'RTX 5090 AI-Edition (2027)',   bench: 27000, watt: 450, price: 248000, dur: 185, year: 2027, tier: 4 },
+  { id: 'gpu_5',  cat: 'gpu', name: 'RTX 6070 Ti 16GB (2029)',      bench: 34000, watt: 300, price: 158000, dur: 210, year: 2029, tier: 4 },
+  { id: 'gpu_6',  cat: 'gpu', name: 'RTX 6090 32GB AI-Core',        bench: 48000, watt: 480, price: 298000, dur: 250, year: 2029, tier: 5 },
+  { id: 'gpu_7',  cat: 'gpu', name: 'RTX 7080 24GB (2032)',         bench: 61000, watt: 380, price: 238000, dur: 275, year: 2032, tier: 5 },
+  { id: 'gpu_8',  cat: 'gpu', name: 'NeuralTensor RTX-8090 48GB',   bench: 80000, watt: 520, price: 398000, dur: 325, year: 2035, tier: 5 },
 
   // --- STORAGE ---
-  { id: 'ssd_1', cat: 'ssd', name: 'NVMe Gen4 SSD 500GB',     bench: 450,  watt: 5,  price: 5500,  dur: 115, year: 2027, tier: 1 },
-  { id: 'ssd_2', cat: 'ssd', name: 'NVMe Gen4 高速SSD 1TB',   bench: 1150, watt: 7,  price: 11000, dur: 135, year: 2027, tier: 2 },
-  { id: 'ssd_3', cat: 'ssd', name: 'NVMe Gen5 爆速SSD 2TB',   bench: 2400, watt: 11, price: 24000, dur: 170, year: 2027, tier: 3 },
-  { id: 'ssd_4', cat: 'ssd', name: 'NVMe Gen6 4TB (2030)',    bench: 4400, watt: 13, price: 39000, dur: 215, year: 2030, tier: 4 },
-  { id: 'ssd_5', cat: 'ssd', name: '光量子ホログラムSSD 8TB',  bench: 7200, watt: 15, price: 62000, dur: 280, year: 2034, tier: 5 },
+  { id: 'ssd_0', cat: 'ssd', name: 'SATA SSD 256GB (格安)',     bench: 220,  watt: 4,  price: 2900,  dur: 88,  year: 2027, tier: 1 },
+  { id: 'ssd_1', cat: 'ssd', name: 'NVMe Gen3/4 SSD 500GB',    bench: 480,  watt: 5,  price: 5800,  dur: 115, year: 2027, tier: 1 },
+  { id: 'ssd_2', cat: 'ssd', name: 'NVMe Gen4 高速SSD 1TB',   bench: 1200, watt: 7,  price: 11800, dur: 135, year: 2027, tier: 2 },
+  { id: 'ssd_3', cat: 'ssd', name: 'NVMe Gen5 爆速SSD 2TB',   bench: 2500, watt: 11, price: 25800, dur: 170, year: 2027, tier: 3 },
+  { id: 'ssd_4', cat: 'ssd', name: 'NVMe Gen6 4TB (2030)',    bench: 4600, watt: 13, price: 42000, dur: 215, year: 2030, tier: 4 },
+  { id: 'ssd_5', cat: 'ssd', name: '光量子ホログラムSSD 8TB',  bench: 7500, watt: 15, price: 66000, dur: 280, year: 2034, tier: 5 },
 
   // --- PSU ---
-  { id: 'psu_1', cat: 'psu', name: '550W Bronze 電源',          supply: 550,  bench: 300,  watt: 0, price: 6200,  dur: 115, year: 2027, tier: 1 },
-  { id: 'psu_2', cat: 'psu', name: '750W Gold フルモジュラー',  supply: 750,  bench: 800,  watt: 0, price: 13500, dur: 135, year: 2027, tier: 2 },
-  { id: 'psu_3', cat: 'psu', name: '1200W Platinum ATX3.1',     supply: 1200, bench: 1800, watt: 0, price: 28000, dur: 180, year: 2027, tier: 3 },
-  { id: 'psu_4', cat: 'psu', name: '1300W Titanium AI電源(2030)',supply: 1300, bench: 2900, watt: 0, price: 38000, dur: 235, year: 2030, tier: 4 },
-  { id: 'psu_5', cat: 'psu', name: '1600W 超伝導デジタル電源',  supply: 1600, bench: 4200, watt: 0, price: 56000, dur: 300, year: 2034, tier: 5 },
+  { id: 'psu_0', cat: 'psu', name: '400W 廉価電源',             supply: 400,  bench: 150,  watt: 0, price: 3400,  dur: 82,  year: 2027, tier: 1 },
+  { id: 'psu_1', cat: 'psu', name: '550W Bronze 電源',          supply: 550,  bench: 320,  watt: 0, price: 6800,  dur: 115, year: 2027, tier: 1 },
+  { id: 'psu_2', cat: 'psu', name: '750W Gold フルモジュラー',  supply: 750,  bench: 850,  watt: 0, price: 14800, dur: 135, year: 2027, tier: 2 },
+  { id: 'psu_3', cat: 'psu', name: '1200W Platinum ATX3.1',     supply: 1200, bench: 1900, watt: 0, price: 29800, dur: 180, year: 2027, tier: 3 },
+  { id: 'psu_4', cat: 'psu', name: '1300W Titanium AI電源(2030)',supply: 1300, bench: 3100, watt: 0, price: 41000, dur: 235, year: 2030, tier: 4 },
+  { id: 'psu_5', cat: 'psu', name: '1600W 超伝導デジタル電源',  supply: 1600, bench: 4500, watt: 0, price: 59000, dur: 300, year: 2034, tier: 5 },
 
   // --- PC CASE ---
-  { id: 'cas_1', cat: 'case', name: 'シンプル黒ミニタワー',       protect: 0.04, bench: 200,  watt: 5,  price: 4800,  dur: 120, year: 2027, tier: 1 },
-  { id: 'cas_2', cat: 'case', name: '白ピラーレスRGBケース',      protect: 0.08, bench: 800,  watt: 12, price: 9800,  dur: 145, year: 2027, tier: 2 },
-  { id: 'cas_3', cat: 'case', name: '高エアフローメッシュPro',    protect: 0.15, bench: 1900, watt: 15, price: 17500, dur: 185, year: 2027, tier: 3 },
-  { id: 'cas_4', cat: 'case', name: 'デュアルチャンバー防振装甲', protect: 0.22, bench: 3300, watt: 20, price: 29000, dur: 240, year: 2030, tier: 4 },
-  { id: 'cas_5', cat: 'case', name: 'カーボン電磁シールド筐体',   protect: 0.28, bench: 5000, watt: 25, price: 48000, dur: 300, year: 2034, tier: 5 },
+  { id: 'cas_0', cat: 'case', name: 'ボロ鉄スリム筐体',           protect: 0.01, bench: 100,  watt: 3,  price: 2200,  dur: 80,  year: 2027, tier: 1 },
+  { id: 'cas_1', cat: 'case', name: 'シンプル黒ミニタワー',       protect: 0.04, bench: 220,  watt: 5,  price: 5200,  dur: 120, year: 2027, tier: 1 },
+  { id: 'cas_2', cat: 'case', name: '白ピラーレスRGBケース',      protect: 0.08, bench: 850,  watt: 12, price: 10800, dur: 145, year: 2027, tier: 2 },
+  { id: 'cas_3', cat: 'case', name: '高エアフローメッシュPro',    protect: 0.15, bench: 2000, watt: 15, price: 18800, dur: 185, year: 2027, tier: 3 },
+  { id: 'cas_4', cat: 'case', name: 'デュアルチャンバー防振装甲', protect: 0.22, bench: 3500, watt: 20, price: 31000, dur: 240, year: 2030, tier: 4 },
+  { id: 'cas_5', cat: 'case', name: 'カーボン電磁シールド筐体',   protect: 0.28, bench: 5300, watt: 25, price: 49800, dur: 300, year: 2034, tier: 5 },
 
   // --- OS ---
-  { id: 'os_1', cat: 'os', name: 'Windows 11 Home パッケージ版',     bench: 500,  watt: 0, price: 16500, dur: 999, year: 2027, tier: 1 },
-  { id: 'os_2', cat: 'os', name: 'Windows 11 Pro ワークステーション', bench: 1400, watt: 0, price: 24500, dur: 999, year: 2027, tier: 2 },
-  { id: 'os_3', cat: 'os', name: 'Windows 12 AI Edition (2028)',     bench: 3600, watt: 0, price: 28000, dur: 999, year: 2028, tier: 3 },
-  { id: 'os_4', cat: 'os', name: 'NeuralOS Studio 2031',              bench: 6800, watt: 0, price: 34000, dur: 999, year: 2031, tier: 4 },
-  { id: 'os_5', cat: 'os', name: 'QuantumOS Ultimate 2034',           bench: 11200,watt: 0, price: 42000, dur: 999, year: 2034, tier: 5 }
+  { id: 'os_0', cat: 'os', name: '軽量Linux / 互換OS (格安)',        bench: 220,   watt: 0, price: 3500,  dur: 999, year: 2027, tier: 1 },
+  { id: 'os_1', cat: 'os', name: 'Windows 11 Home パッケージ版',     bench: 550,   watt: 0, price: 17800, dur: 999, year: 2027, tier: 1 },
+  { id: 'os_2', cat: 'os', name: 'Windows 11 Pro ワークステーション', bench: 1500,  watt: 0, price: 25800, dur: 999, year: 2027, tier: 2 },
+  { id: 'os_3', cat: 'os', name: 'Windows 12 AI Edition (2028)',     bench: 3900,  watt: 0, price: 29800, dur: 999, year: 2028, tier: 3 },
+  { id: 'os_4', cat: 'os', name: 'NeuralOS Studio 2031',              bench: 7200,  watt: 0, price: 36000, dur: 999, year: 2031, tier: 4 },
+  { id: 'os_5', cat: 'os', name: 'QuantumOS Ultimate 2034',           bench: 12000, watt: 0, price: 45000, dur: 999, year: 2034, tier: 5 }
 ];
 
 /* ============================================================================
-   5. TOURNAMENT RANKS (E -> S)
-   Aligned with socket-compatible maximum benchmark:
-   - 2027 max valid bench (AM5 + DDR5 + RTX 5090 + 1200W + Win11 Pro) = 49,900
-   - S-rank baseMinBench = 46,500 so 2027's true top socket-matched build can
-     enter S-rank, while later years scale thresholds cleanly.
+   5. TOURNAMENT RANKS (F -> E -> D -> C -> B -> A -> S)
+   - Fランク: 2万円前後の中古PC（ベンチ2,500〜4,500程度）でも出場可能・賞金は控えめ
+   - Eランク: エントリー育成帯（ベンチ6,000〜）
+   - Dランク: ミドル入門帯（ベンチ12,000〜）
+   - Cランク: 中堅電脳リーグ（ベンチ20,000〜 / 2万円の中古PCでは届かない）
+   - Bランク: マスターズ帯（ベンチ29,000〜）
+   - Aランク: アジアGP帯（ベンチ39,000〜）
+   - Sランク: ワールドチャンピオンシップ（ベンチ49,500〜 / 優勝でゲームクリア）
 ============================================================================ */
 const BASE_RANKS = [
   {
-    id: 'E', name: 'Eランク・町内AIカップ', baseMinBench: 2200, eraScale: 0.04, stress: 3.5,
-    prizes: [28000, 16000, 11000, 8000, 6000, 4500, 3500, 2500, 2000, 1500],
-    rivalDurRange: [45, 72],
-    desc: '入門向け大会！安価な中古完成品PCでも出場＆好勝負ができる！'
+    id: 'F', name: 'Fランク・ジャンク＆格安PC杯', baseMinBench: 2200, eraScale: 0.04, stress: 3.0,
+    prizes: [5000, 3000, 2000, 1500, 1000, 800, 600, 500, 300, 200],
+    rivalDurRange: [32, 54],
+    desc: '2万円前後の中古PCでも挑戦できる最下層リーグ！まずはここで腕試し。'
   },
   {
-    id: 'D', name: 'Dランク・秋葉原ルーキー戦', baseMinBench: 8500, eraScale: 0.06, stress: 11,
-    prizes: [55000, 32000, 20000, 14000, 10000, 7500, 5500, 4000, 3000, 2000],
+    id: 'E', name: 'Eランク・町内AIカップ', baseMinBench: 6500, eraScale: 0.05, stress: 6.5,
+    prizes: [10000, 6000, 4000, 3000, 2000, 1500, 1000, 800, 500, 300],
+    rivalDurRange: [65, 95],
+    desc: '格安機を卒業したビルダーが集まる入門大会。'
+  },
+  {
+    id: 'D', name: 'Dランク・秋葉原ルーキー戦', baseMinBench: 12500, eraScale: 0.06, stress: 11.5,
+    prizes: [15000, 9000, 6000, 4500, 3000, 2200, 1500, 1000, 800, 500],
     rivalDurRange: [105, 138],
     desc: 'ミドル級への登竜門。冷却と電源の耐久度が試される。'
   },
   {
-    id: 'C', name: 'Cランク・関東電脳リーグ', baseMinBench: 16500, eraScale: 0.08, stress: 18,
-    prizes: [110000, 65000, 42000, 28000, 20000, 15000, 11000, 8000, 5500, 3500],
+    id: 'C', name: 'Cランク・関東電脳リーグ', baseMinBench: 20500, eraScale: 0.08, stress: 18.0,
+    prizes: [20000, 12000, 8000, 5500, 4000, 3000, 2000, 1500, 1000, 500],
     rivalDurRange: [135, 175],
-    desc: '中堅ビルダーが集う激戦区。簡易水冷や高品質電源が有効。'
+    desc: '本格派ビルダーの激戦区。2万円の中古機では歯が立たない。'
   },
   {
-    id: 'B', name: 'Bランク・ジャパンAIマスターズ', baseMinBench: 25500, eraScale: 0.10, stress: 25,
-    prizes: [220000, 130000, 82000, 56000, 40000, 28000, 20000, 15000, 10000, 7000],
+    id: 'B', name: 'Bランク・ジャパンAIマスターズ', baseMinBench: 29500, eraScale: 0.10, stress: 25.0,
+    prizes: [40000, 24000, 15000, 10000, 7000, 5000, 3500, 2500, 1500, 1000],
     rivalDurRange: [175, 220],
     desc: 'ハイレベル大会！ソケット一致と耐久バランスが問われる。'
   },
   {
-    id: 'A', name: 'Aランク・アジア電脳グランプリ', baseMinBench: 36000, eraScale: 0.11, stress: 33,
-    prizes: [420000, 250000, 160000, 110000, 78000, 55000, 40000, 28000, 19000, 12000],
+    id: 'A', name: 'Aランク・アジア電脳グランプリ', baseMinBench: 39500, eraScale: 0.11, stress: 33.0,
+    prizes: [80000, 48000, 30000, 20000, 14000, 10000, 7000, 5000, 3000, 2000],
     rivalDurRange: [215, 265],
     desc: 'トップ層のみが立てる舞台。高耐久パーツの厳選が必須！'
   },
   {
-    id: 'S', name: 'Sランク・ワールドAIチャンピオンシップ', baseMinBench: 46500, eraScale: 0.11, stress: 42,
-    prizes: [950000, 550000, 340000, 230000, 160000, 115000, 80000, 55000, 38000, 25000],
+    id: 'S', name: 'Sランク・ワールドAIチャンピオンシップ', baseMinBench: 49500, eraScale: 0.11, stress: 42.0,
+    prizes: [500000, 280000, 170000, 110000, 80000, 55000, 38000, 25000, 17000, 10000],
     rivalDurRange: [260, 315],
     desc: '最高峰の頂上決戦！優勝すればゲームクリア達成！'
   }
@@ -682,7 +708,7 @@ const SELLERS_BY_PERSONA = {
    7. MAIN APPLICATION STATE & GAME LOGIC
 ============================================================================ */
 const App = (() => {
-  const SAVE_KEY = 'pasokon_battle_save_v7';
+  const SAVE_KEY = 'pasokon_battle_save_v9';
 
   let state = null;
   let currentTab = 'home';
@@ -691,7 +717,7 @@ const App = (() => {
   let selectedShopId = 'flea1';
   let shopSubMode = 'browse';
   let btoDraft = {};
-  let fleaDraft = { selectedUids: [], price: 15000 };
+  let fleaDraft = { selectedUids: [], price: 10000 };
   let disassembleHistory = [];
   let battleSelectedPcIdx = 0;
 
@@ -713,7 +739,7 @@ const App = (() => {
       week: 1,
       totalWeeks: 0,
       age: 40,
-      money: 100000,
+      money: 20000,
       nextUid: 1,
       inventory: [],
       pcs: [{ id: 1, name: '次郎1号機', parts: {} }],
@@ -722,7 +748,7 @@ const App = (() => {
       market: {},
       fleaLoyalty: { flea1: 0, flea2: 0, flea3: 0 },
       sellerLoyalty: {},
-      clearedRanks: { E: false, D: false, C: false, B: false, A: false, S: false },
+      clearedRanks: { F: false, E: false, D: false, C: false, B: false, A: false, S: false },
       flags: {
         seenOpening: false,
         seenFirstPc: false,
@@ -767,6 +793,7 @@ const App = (() => {
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed.year !== 'number') return false;
       state = Object.assign(createInitialState(), parsed);
+      state.clearedRanks = Object.assign({ F: false, E: false, D: false, C: false, B: false, A: false, S: false }, state.clearedRanks || {});
       state.pcs = Array.isArray(state.pcs) && state.pcs.length > 0
         ? state.pcs
         : [{ id: 1, name: '次郎1号機', parts: {} }];
@@ -791,7 +818,7 @@ const App = (() => {
     battleSelectedPcIdx = 0;
     selectedShopId = 'flea1';
     shopSubMode = 'browse';
-    fleaDraft = { selectedUids: [], price: 15000 };
+    fleaDraft = { selectedUids: [], price: 10000 };
     disassembleHistory = [];
     generateWeeklyMarket();
     writeSave();
@@ -997,12 +1024,12 @@ const App = (() => {
       {
         speaker: `次郎（${state.age}歳）`,
         mood: 'happy',
-        text: '「よし、手元にある¥100,000と毎月1週目に入る¥40,000の固定収入を元手に、自作PCとAI競技『パソコンバトル』でSランク制覇を狙うぞ！」'
+        text: '「よし、手元にある¥20,000と毎月1週目に入る¥20,000の固定収入を元手に、自作PCとAI競技『パソコンバトル』でSランク制覇を狙うぞ！」'
       },
       {
         speaker: `次郎（${state.age}歳）`,
         mood: 'build',
-        text: '「CPUとマザーボードのソケット一致、メモリ規格、電源容量――ここを外すと起動すらしない。パーツの相性と耐久を見極めよう！」'
+        text: '「2万円の中古PCはせいぜいFランク向け。いきなり上位大会には出られないし、大会で耐久が削れると破損してランクも落ちる。堅実に積み上げよう！」'
       },
       {
         speaker: 'ナレーション',
@@ -1134,7 +1161,7 @@ const App = (() => {
         <div class="flex flex-col items-center my-2">
           <div class="anim-idle">${svgJiro('happy', 136)}</div>
           <div class="mt-1 px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700 text-[10px] text-slate-200 text-center">
-            ソケット一致・比較表示つき！耐久度が尽きる前にSランク制覇へ！
+            F〜Sランク制！現実的な低スペック構成と耐久管理でSランク制覇へ！
           </div>
         </div>
 
@@ -1285,36 +1312,37 @@ const App = (() => {
     const cases = byCat('case');
     const oss = byCat('os');
 
-    const jitter = () => (Math.random() - 0.5) * 0.12;
+    const jitter = () => (Math.random() - 0.5) * 0.1;
     let cpu, mobo, ram, gpu, cooler, ssd, pcCase, os;
 
     if (profileKey === 'cheap_starter') {
-      cpu = pickByRank(cpus, 0.0 + Math.random() * 0.16);
-      mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.0);
-      ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.0);
-      gpu = pickByRank(gpus, 0.0 + Math.random() * 0.15);
-      cooler = pickByRank(coolers, 0.0);
-      ssd = pickByRank(ssds, 0.0 + Math.random() * 0.2);
-      pcCase = pickByRank(cases, 0.0 + Math.random() * 0.2);
-      os = pickByRank(oss, 0.0);
+      // 2万円前後の中古完成品：旧世代/格安パーツ中心でベンチ2,500〜4,200程度
+      cpu = cpus.find(c => c.id === 'cpu_0a') || cpus[0];
+      mobo = mobos.find(m => m.socket === cpu.socket) || mobos[0];
+      ram = rams.find(r => r.ramType === mobo.ramType) || rams[0];
+      gpu = gpus.find(g => g.id === 'gpu_0a') || gpus[0];
+      cooler = coolers.find(c => c.id === 'col_0') || coolers[0];
+      ssd = ssds.find(s => s.id === 'ssd_0') || ssds[0];
+      pcCase = cases.find(c => c.id === 'cas_0') || cases[0];
+      os = oss.find(o => o.id === 'os_0') || oss[0];
     } else if (profileKey === 'office_compact') {
-      cpu = pickByRank(cpus, 0.2 + jitter());
-      mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.2);
-      ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.25);
-      gpu = pickByRank(gpus, 0.08 + Math.random() * 0.14);
-      cooler = pickByRank(coolers, 0.18 + Math.random() * 0.22);
-      ssd = pickByRank(ssds, 0.35 + Math.random() * 0.3);
-      pcCase = pickByRank(cases, 0.1 + Math.random() * 0.25);
-      os = pickByRank(oss, 0.25);
+      cpu = pickByRank(cpus, 0.18 + jitter());
+      mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.18);
+      ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.22);
+      gpu = pickByRank(gpus, 0.12 + Math.random() * 0.14);
+      cooler = pickByRank(coolers, 0.15 + Math.random() * 0.2);
+      ssd = pickByRank(ssds, 0.25 + Math.random() * 0.25);
+      pcCase = pickByRank(cases, 0.15 + Math.random() * 0.2);
+      os = pickByRank(oss, 0.2);
     } else if (profileKey === 'cospa_mid') {
-      cpu = pickByRank(cpus, 0.35 + jitter());
-      mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.35);
+      cpu = pickByRank(cpus, 0.38 + jitter());
+      mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.38);
       ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.4 + jitter());
       gpu = pickByRank(gpus, 0.38 + jitter());
-      cooler = pickByRank(coolers, 0.28 + jitter());
-      ssd = pickByRank(ssds, 0.3 + jitter());
-      pcCase = pickByRank(cases, 0.25 + jitter());
-      os = pickByRank(oss, 0.25);
+      cooler = pickByRank(coolers, 0.3 + jitter());
+      ssd = pickByRank(ssds, 0.32 + jitter());
+      pcCase = pickByRank(cases, 0.28 + jitter());
+      os = pickByRank(oss, 0.28);
     } else if (profileKey === 'ai_compute') {
       cpu = cpus[cpus.length - 1];
       mobo = mobos.find(m => m.socket === cpu.socket) || mobos[mobos.length - 1];
@@ -1368,7 +1396,9 @@ const App = (() => {
         cond = 'new';
         durRatio = 1;
       } else if (condition === 'used') {
-        if (persona === 'tough_quiet') {
+        if (profileKey === 'cheap_starter') {
+          durRatio = 0.48 + Math.random() * 0.25;
+        } else if (persona === 'tough_quiet') {
           durRatio = 0.82 + Math.random() * 0.16;
         } else if (persona === 'odd_unbalanced') {
           durRatio = 0.45 + Math.random() * 0.42;
@@ -1672,7 +1702,7 @@ const App = (() => {
 
       const pushUniqueItem = (entry) => {
         const sig = `${entry.kind}:${entry.parts.map(p => `${p.specId}@${p.condition}`).join(',')}`;
-        if (seenSignatures.has(sig) && items.length < 18) return false;
+        if (seenSignatures.has(sig) && items.length < 22) return false;
         seenSignatures.add(sig);
         items.push(entry);
         return true;
@@ -1694,10 +1724,10 @@ const App = (() => {
         });
 
         orderedSpecs.forEach((spec, idx) => {
-          const personaMult = shop.persona === 'cospa_bto' ? 0.95 : shop.persona === 'ai_lab' ? 1.05 : 1.02;
-          const fluct = (0.94 + Math.random() * 0.12) * personaMult;
+          const personaMult = shop.persona === 'cospa_bto' ? 0.96 : shop.persona === 'ai_lab' ? 1.04 : 1.02;
+          const fluct = (0.95 + Math.random() * 0.10) * personaMult;
           const isSaleItem = hasSale && idx % 4 === 0;
-          const saleMult = isSaleItem ? 0.80 : 1.0;
+          const saleMult = isSaleItem ? 0.82 : 1.0;
           const price = Math.round((spec.price * fluct * saleMult) / 100) * 100;
           pushUniqueItem({
             id: `${shop.id}_${spec.id}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
@@ -1712,8 +1742,8 @@ const App = (() => {
 
         const btoProfiles = shop.persona === 'cospa_bto'
           ? [
-              { key: 'cheap_starter', label: '【新品BTO】コスパ入門モデル', priceMult: 0.98 },
-              { key: 'cospa_mid',     label: '【新品BTO】バランス万能機',   priceMult: 1.00 }
+              { key: 'cheap_starter', label: '【新品BTO】格安事務エントリー', priceMult: 1.00 },
+              { key: 'cospa_mid',     label: '【新品BTO】バランス万能機',     priceMult: 1.02 }
             ]
           : shop.persona === 'ai_lab'
           ? [
@@ -1729,7 +1759,7 @@ const App = (() => {
           const build = buildDistinctPreset(shop.persona, prof.key, 'new');
           const sumPrice = build.reduce((acc, b) => acc + getSpec(b.specId).price, 0);
           const isSaleItem = hasSale && idx === 0;
-          const price = Math.round((sumPrice * prof.priceMult * (isSaleItem ? 0.85 : 1.03)) / 100) * 100;
+          const price = Math.round((sumPrice * prof.priceMult * (isSaleItem ? 0.86 : 1.04)) / 100) * 100;
           const bScore = estimateBuildBench(build);
           items.unshift({
             id: `${shop.id}_bto_${idx}_${Math.random().toString(36).slice(2, 6)}`,
@@ -1743,10 +1773,10 @@ const App = (() => {
         });
       } else if (shop.type === 'used') {
         const usedPresets = [
-          { key: 'cheap_starter',  label: '【格安中古PC】事務＆Eランク練習機', priceRange: [14500, 19500] },
-          { key: 'odd_unbalanced', label: '【中古ワケありPC】偏りスペック機', priceRange: [21500, 28500] },
-          { key: 'office_compact', label: '【中古整備PC】静音オフィス＆入門', priceRange: [29000, 39500] },
-          { key: 'tough_quiet',    label: '【中古高耐久PC】頑丈冷却ワーク機', priceRange: [44000, 68000] }
+          { key: 'cheap_starter',  label: '【格安中古PC】事務＆Fランク練習機', priceRange: [16500, 21500] },
+          { key: 'odd_unbalanced', label: '【中古ワケありPC】偏りスペック機', priceRange: [24000, 34000] },
+          { key: 'office_compact', label: '【中古整備PC】Eランク向け入門機',   priceRange: [36000, 52000] },
+          { key: 'tough_quiet',    label: '【中古高耐久PC】頑丈冷却ワーク機', priceRange: [68000, 108000] }
         ];
 
         usedPresets.slice().reverse().forEach((preset, idx) => {
@@ -1754,7 +1784,7 @@ const App = (() => {
           const isSaleItem = hasSale && idx >= 2;
           const [pMin, pMax] = preset.priceRange;
           const rawP = pMin + Math.random() * (pMax - pMin);
-          const price = Math.round((rawP * (isSaleItem ? 0.82 : 1)) / 100) * 100;
+          const price = Math.round((rawP * (isSaleItem ? 0.85 : 1)) / 100) * 100;
           const bScore = estimateBuildBench(build);
           items.unshift({
             id: `${shop.id}_upc_${idx}_${Math.random().toString(36).slice(2, 6)}`,
@@ -1767,11 +1797,11 @@ const App = (() => {
           });
         });
 
-        for (let i = 0; i < 16; i++) {
+        for (let i = 0; i < 18; i++) {
           const spec = nonOsSpecs[(i + state.totalWeeks) % nonOsSpecs.length];
           const durRatio = 0.52 + Math.random() * 0.38;
           const isSaleItem = hasSale && i % 4 === 1;
-          const price = Math.round((spec.price * (0.45 + durRatio * 0.34) * (isSaleItem ? 0.78 : 1)) / 100) * 100;
+          const price = Math.round((spec.price * (0.48 + durRatio * 0.34) * (isSaleItem ? 0.80 : 1)) / 100) * 100;
           pushUniqueItem({
             id: `${shop.id}_u_${i}_${Math.random().toString(36).slice(2, 6)}`,
             kind: 'part',
@@ -1791,11 +1821,13 @@ const App = (() => {
             const profKey = c === 2 ? 'odd_unbalanced' : 'cheap_starter';
             const build = buildDistinctPreset(shop.persona, profKey, 'used');
             const bScore = estimateBuildBench(build);
-            const price = Math.round((15000 + c * 5500 + Math.random() * 4000) / 500) * 500;
+            const price = c < 2
+              ? Math.round((17500 + c * 2500 + Math.random() * 2000) / 500) * 500
+              : Math.round((26000 + Math.random() * 7000) / 500) * 500;
             items.unshift({
               id: `${shop.id}_f1pc_${c}_${Math.random().toString(36).slice(2, 6)}`,
               kind: 'pc',
-              title: `${c === 2 ? '【個人改造PC】変則構成機' : '【格安中古PC】入門お助け機'} [ベンチ${bScore.toLocaleString()}]`,
+              title: `${c === 2 ? '【個人改造PC】変則構成機' : '【格安中古PC】Fランクお助け機'} [ベンチ${bScore.toLocaleString()}]`,
               parts: build,
               price,
               seller
@@ -1806,7 +1838,7 @@ const App = (() => {
             const spec = nonOsSpecs[Math.floor(Math.random() * nonOsSpecs.length)];
             const isJunk = i % 3 === 0 || Math.random() < 0.25;
             const durRatio = isJunk ? 0 : (0.42 + Math.random() * 0.45);
-            const rawPrice = isJunk ? spec.price * 0.14 : spec.price * (0.35 + durRatio * 0.34);
+            const rawPrice = isJunk ? spec.price * 0.16 : spec.price * (0.38 + durRatio * 0.34);
             pushUniqueItem({
               id: `${shop.id}_f1p_${i}_${Math.random().toString(36).slice(2, 6)}`,
               kind: 'part',
@@ -1822,14 +1854,14 @@ const App = (() => {
             const sampleBuild = buildDistinctPreset(shop.persona, b % 2 === 0 ? 'cheap_starter' : 'cospa_mid', 'used');
             const bundleCats = b % 2 === 0 ? ['cpu', 'mobo', 'ram'] : ['gpu', 'ram', 'ssd'];
             const bundleParts = sampleBuild.filter(x => bundleCats.includes(getSpec(x.specId).cat));
-            const base = bundleParts.reduce((a, p) => a + getSpec(p.specId).price * 0.44, 0);
+            const base = bundleParts.reduce((a, p) => a + getSpec(p.specId).price * 0.48, 0);
             const bScore = estimateBuildBench(bundleParts);
             items.unshift({
               id: `${shop.id}_f2b_${b}_${Math.random().toString(36).slice(2, 6)}`,
               kind: 'bundle',
               title: `【まとめ売${b + 1}】${bundleCats.map(k => PART_CATEGORIES.find(c => c.key === k).label).join('+')} [計${bScore.toLocaleString()}]`,
               parts: bundleParts,
-              price: Math.max(3000, Math.round(base / 100) * 100),
+              price: Math.max(3500, Math.round(base / 100) * 100),
               seller
             });
           }
@@ -1839,13 +1871,13 @@ const App = (() => {
             const drop = k === 0 ? ['gpu', 'os'] : ['ssd'];
             inc = inc.filter(x => !drop.includes(getSpec(x.specId).cat));
             const bScore = estimateBuildBench(inc);
-            const base = inc.reduce((a, p) => a + getSpec(p.specId).price * 0.46, 0);
+            const base = inc.reduce((a, p) => a + getSpec(p.specId).price * 0.5, 0);
             items.push({
               id: `${shop.id}_f2inc_${k}_${Math.random().toString(36).slice(2, 6)}`,
               kind: 'incomplete_pc',
               title: `【組替途中PC】${k === 0 ? 'グラボ・OS欠品' : 'SSD欠品'} [ベンチ${bScore.toLocaleString()}]`,
               parts: inc,
-              price: Math.max(6000, Math.round(base / 100) * 100),
+              price: Math.max(8000, Math.round(base / 100) * 100),
               seller
             });
           }
@@ -1858,7 +1890,7 @@ const App = (() => {
               kind: 'part',
               title: `【漁り品】${spec.name}`,
               parts: [{ specId: spec.id, condition: 'used', durRatio }],
-              price: Math.max(800, Math.round((spec.price * 0.5) / 100) * 100),
+              price: Math.max(800, Math.round((spec.price * 0.52) / 100) * 100),
               seller
             });
           }
@@ -1868,13 +1900,13 @@ const App = (() => {
             const profKey = e === 0 ? 'ai_compute' : e === 1 ? 'tough_quiet' : 'enthusiast_rig';
             const build = buildDistinctPreset(shop.persona, profKey, 'used');
             const bScore = estimateBuildBench(build);
-            const rawSum = build.reduce((a, p) => a + getSpec(p.specId).price * 0.65, 0);
+            const rawSum = build.reduce((a, p) => a + getSpec(p.specId).price * 0.68, 0);
             items.unshift({
               id: `${shop.id}_f3pc_${e}_${Math.random().toString(36).slice(2, 6)}`,
               kind: 'pc',
               title: `【ガチ勢放出】${e === 0 ? '爆演算特化機' : e === 1 ? '重装甲耐久機' : 'チューンド機'} [ベンチ${bScore.toLocaleString()}]`,
               parts: build,
-              price: Math.max(25000, Math.round(rawSum / 500) * 500),
+              price: Math.max(45000, Math.round(rawSum / 500) * 500),
               seller
             });
           }
@@ -1883,7 +1915,7 @@ const App = (() => {
             const seller = roster[i % roster.length];
             const spec = highSpecs[i % highSpecs.length];
             const durRatio = 0.58 + Math.random() * 0.36;
-            const price = Math.round((spec.price * (0.52 + durRatio * 0.32)) / 100) * 100;
+            const price = Math.round((spec.price * (0.55 + durRatio * 0.32)) / 100) * 100;
             pushUniqueItem({
               id: `${shop.id}_f3p_${i}_${Math.random().toString(36).slice(2, 6)}`,
               kind: 'part',
@@ -1950,7 +1982,7 @@ const App = (() => {
 
     let monthlySalaryMsg = '';
     if (state.week === 1) {
-      const salary = 40000;
+      const salary = 20000;
       state.money += salary;
       monthlySalaryMsg = `💴 毎月1週目の固定収入 +¥${salary.toLocaleString()} を受け取った！`;
       addLog(monthlySalaryMsg);
@@ -2017,7 +2049,7 @@ const App = (() => {
     if (monthlySalaryMsg || arrivedMessages.length > 0) {
       const lines = [];
       if (monthlySalaryMsg) {
-        lines.push({ speaker: '次郎', mood: 'happy', text: '「おっ！今月1週目の固定収入¥40,000が入ったぞ！少しずつでも資金を貯めていけるな！」' });
+        lines.push({ speaker: '次郎', mood: 'happy', text: '「おっ！今月1週目の固定収入¥20,000が入ったぞ！少しずつでも資金を貯めていけるな！」' });
       }
       if (arrivedMessages.length > 0) {
         lines.push({ speaker: '宅配便の配達員', mood: 'normal', text: `「お待たせしました！次郎さん宛ての荷物が届きましたよ！（${arrivedMessages.length}件）」` });
@@ -2089,7 +2121,7 @@ const App = (() => {
     const ranks = getScaledRanks(state.year);
     const rankBadges = ranks.map(r => {
       const ok = state.clearedRanks[r.id];
-      return `<span class="px-2 py-0.5 rounded-md text-[10px] font-black ${ok ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400 border border-slate-700'}">${r.id}${ok ? '★' : ''}</span>`;
+      return `<span class="px-1.5 py-0.5 rounded-md text-[10px] font-black ${ok ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400 border border-slate-700'}">${r.id}${ok ? '★' : ''}</span>`;
     }).join('');
 
     const pcSummaries = state.pcs.map((pc, idx) => {
@@ -2124,7 +2156,7 @@ const App = (() => {
             <p class="text-[11px] text-slate-200 mt-0.5 leading-snug">
               ${state.pcs.some(p => evaluatePC(p).ok)
                 ? '「マシンは準備万端！大会で賞金を稼ぐか、さらなる強化を狙おう！」'
-                : '「まずは通販やフリマで安い中古完成品PCやパーツを集めよう！毎月1週目に¥40,000の固定収入も入るぞ！」'}
+                : '「まずは通販やフリマで安い中古完成品PCやパーツを集めよう！毎月1週目に¥20,000の固定収入も入るぞ！」'}
             </p>
             <div class="mt-1.5 flex items-center gap-1 flex-wrap">
               <span class="text-[10px] text-slate-400">制覇:</span>${rankBadges}
@@ -2737,6 +2769,7 @@ const App = (() => {
 
   /* ---------------------- TAB 4: FLEA MARKET LISTING ---------------------- */
   function renderFleaTab() {
+    pruneDisassembleHistory();
     const refPc = getComparePC();
     const invCheckboxes = state.inventory.map(it => {
       const sp = getSpec(it.specId);
@@ -2768,7 +2801,7 @@ const App = (() => {
 
     const undoButtons = disassembleHistory.map((snap, hIdx) => `
       <button type="button" onclick="App.restoreDisassembledPc(${hIdx})" class="px-2 py-1 rounded-lg bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-500/60 text-[10px] font-black text-emerald-200">
-        ↩ 「${snap.pcName}」の分解を元に戻す
+        ↩ 「${snap.pcName}」の分解を元に戻す (手持ち残${(snap.movedUids || []).length}点)
       </button>
     `).join('');
 
@@ -2924,9 +2957,31 @@ const App = (() => {
     renderApp();
   }
 
+  function pruneDisassembleHistory() {
+    if (!state || !Array.isArray(disassembleHistory)) return;
+    const invUids = new Set(state.inventory.map(it => it.uid));
+    disassembleHistory.forEach(snap => {
+      const validParts = {};
+      const validUids = [];
+      Object.entries(snap.parts || {}).forEach(([catKey, savedPart]) => {
+        if (savedPart && invUids.has(savedPart.uid)) {
+          validParts[catKey] = savedPart;
+          validUids.push(savedPart.uid);
+        }
+      });
+      snap.parts = validParts;
+      snap.movedUids = validUids;
+    });
+    disassembleHistory = disassembleHistory.filter(snap => (snap.movedUids || []).length > 0);
+  }
+
   function restoreDisassembledPc(histIdx) {
+    pruneDisassembleHistory();
     const snap = disassembleHistory[histIdx];
-    if (!snap) return;
+    if (!snap) {
+      renderApp();
+      return;
+    }
 
     let targetPc = state.pcs.find(p => p.id === snap.pcId) || state.pcs[0];
     if (!targetPc && state.pcs.length < 6) {
@@ -2938,23 +2993,28 @@ const App = (() => {
     const movedSet = new Set(snap.movedUids || []);
     fleaDraft.selectedUids = fleaDraft.selectedUids.filter(uid => !movedSet.has(uid));
 
+    let restoredCount = 0;
     Object.entries(snap.parts || {}).forEach(([catKey, savedPart]) => {
       if (!savedPart) return;
       const invIdx = state.inventory.findIndex(it => it.uid === savedPart.uid);
-      let restoredItem = savedPart;
-      if (invIdx !== -1) {
-        restoredItem = state.inventory.splice(invIdx, 1)[0];
-      }
+      if (invIdx === -1) return; // 出品中・売却済み・他PC装着済み・処分済みのパーツは絶対に複製復元しない
+      const restoredItem = state.inventory.splice(invIdx, 1)[0];
       if (targetPc.parts[catKey]) {
         state.inventory.push(targetPc.parts[catKey]);
       }
       targetPc.parts[catKey] = restoredItem;
+      restoredCount++;
     });
 
     disassembleHistory.splice(histIdx, 1);
+    pruneDisassembleHistory();
     evaluatePC(targetPc);
     recalcSuggestedFleaPrice();
-    AudioSys.se('build');
+    if (restoredCount > 0) {
+      AudioSys.se('build');
+    } else {
+      AudioSys.se('click');
+    }
     writeSave();
     renderApp();
   }
@@ -2999,6 +3059,7 @@ const App = (() => {
     });
 
     fleaDraft.selectedUids = [];
+    pruneDisassembleHistory();
     AudioSys.se('buy');
     addLog(`フリマに「${title}」を¥${price.toLocaleString()}で出品した。`);
     writeSave();
@@ -3032,11 +3093,16 @@ const App = (() => {
     const rankCards = ranks.map(r => {
       const cleared = state.clearedRanks[r.id];
       const benchOk = st.ok && st.bench >= r.minBench;
+      const badgeCls = r.id === 'S'
+        ? 'bg-gradient-to-r from-amber-400 to-rose-500 text-slate-950'
+        : r.id === 'F'
+        ? 'bg-slate-600 text-white'
+        : 'bg-indigo-600 text-white';
       return `
         <div class="p-2.5 rounded-2xl bg-slate-800/95 border ${cleared ? 'border-amber-400/80' : benchOk ? 'border-sky-500/70' : 'border-slate-700'} flex items-center justify-between gap-2">
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
-              <span class="px-2 py-0.5 rounded-md font-black text-xs ${r.id === 'S' ? 'bg-gradient-to-r from-amber-400 to-rose-500 text-slate-950' : 'bg-indigo-600 text-white'}">${r.id}ランク</span>
+              <span class="px-2 py-0.5 rounded-md font-black text-xs ${badgeCls}">${r.id}ランク</span>
               <span class="text-xs font-black text-white truncate">${r.name.split('・')[1]}</span>
               ${cleared ? '<span class="text-[10px] font-black text-amber-300">★制覇済</span>' : ''}
             </div>
@@ -3061,7 +3127,7 @@ const App = (() => {
             ${pcSelectOpts}
           </select>
           <p class="text-[10px] text-amber-200/90 mt-1.5 leading-snug">
-            ※勝敗はベンチマークではなく<strong>各パーツの耐久度</strong>で決まります！大会後はパーツが摩耗・破損し、1週間経過します。
+            ※勝敗はベンチマークではなく<strong>各パーツの耐久度</strong>で決まります！耐久が尽きて破損するとAI停止し、ランクも下がります。
           </p>
         </div>
 
@@ -3283,9 +3349,20 @@ const App = (() => {
     state.money += prize;
     const ranks = getScaledRanks(state.year);
     const rank = ranks.find(r => r.id === rankId);
+    const st = evaluatePC(state.pcs[battleSelectedPcIdx]);
     const firstClear = placement === 1 && !state.clearedRanks[rankId];
     if (placement === 1) {
       state.clearedRanks[rankId] = true;
+    }
+
+    // パーツ破損でベンチマークが下がった場合、クリア済みランクの到達状況を現在ベンチ基準で見直す
+    if (!st.ok) {
+      Object.keys(state.clearedRanks).forEach(k => {
+        const rk = ranks.find(x => x.id === k);
+        if (rk && st.bench < rk.minBench) {
+          state.clearedRanks[k] = false;
+        }
+      });
     }
 
     addLog(`${rank.name}で第${placement}位！賞金¥${prize.toLocaleString()}を獲得。`);
