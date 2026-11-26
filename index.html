@@ -29,7 +29,7 @@
     justify-content: center;
   }
 
-  /* Strict 9:16 Portrait Container with Mobile Browser Safe-Area Protection */
+  /* 9:16 Portrait Frame Safe Against Mobile Chrome Bars */
   #game-shell {
     position: relative;
     width: min(100vw, calc(100dvh * 9 / 16));
@@ -39,7 +39,7 @@
     padding-top: var(--safe-top);
     padding-bottom: var(--safe-bottom);
     background: linear-gradient(180deg, #0b1120 0%, #111827 100%);
-    box-shadow: 0 0 60px rgba(0, 0, 0, 0.9), 0 0 0 2px rgba(56, 189, 248, 0.22);
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.9), 0 0 0 2px rgba(56, 189, 248, 0.24);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -140,7 +140,7 @@
     </button>
   </nav>
 
-  <!-- Custom Modal Dialog (Never uses alert/confirm) -->
+  <!-- Custom Modal Dialog (Never uses alert() or confirm()) -->
   <div id="modal-backdrop" class="hidden absolute inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="w-full max-w-xs bg-slate-900 border-2 border-sky-400/70 rounded-2xl p-4 shadow-2xl anim-pop text-slate-100">
       <h3 id="modal-title" class="text-sm font-black text-sky-300 mb-1.5">確認</h3>
@@ -171,7 +171,7 @@ const AudioSys = (() => {
         ctx.resume();
       }
     } catch (e) {
-      // Ignore audio init errors in restricted environments
+      // Fallback when audio context cannot start yet
     }
   }
 
@@ -347,18 +347,21 @@ function svgJiro(mood = 'normal', size = 120) {
         <stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#0369a1"/>
       </linearGradient>
     </defs>
-    <path d="M 10 158 C 12 116, 40 108, 80 108 C 120 108, 148 116, 150 158 Z" fill="url(#jHoodie)" stroke="#020617" stroke-width="2.5"/>
-    <path d="M 54 110 L 80 156 L 106 110 Z" fill="url(#jTee)"/>
-    <rect x="61" y="95" width="38" height="22" rx="10" fill="#fed7aa"/>
-    <circle cx="35" cy="76" r="9" fill="#fdba74" stroke="#9a3412" stroke-width="1.5"/>
-    <circle cx="125" cy="76" r="9" fill="#fdba74" stroke="#9a3412" stroke-width="1.5"/>
-    <ellipse cx="80" cy="74" rx="45" ry="42" fill="#fed7aa" stroke="#9a3412" stroke-width="2"/>
-    <path d="M 58 107 Q 80 116 102 107" fill="none" stroke="#ea580c" stroke-width="2" opacity="0.65"/>
-    <ellipse cx="51" cy="84" rx="8" ry="5" fill="#fb7185" opacity="0.35"/>
-    <ellipse cx="109" cy="84" rx="8" ry="5" fill="#fb7185" opacity="0.35"/>
-    <!-- Full Thick Black Hair -->
-    <path d="M 33 72 C 29 33, 52 16, 80 16 C 108 16, 131 33, 127 72 C 123 53, 113 44, 101 42 C 93 48, 83 47, 76 41 C 63 48, 45 48, 33 72 Z" fill="#1e293b" stroke="#020617" stroke-width="2.2"/>
-    <path d="M 46 24 Q 70 11 98 19 Q 116 25 121 41" fill="none" stroke="#475569" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Overweight / Chubby Jiro Body -->
+    <path d="M 8 158 C 10 112, 38 106, 80 106 C 122 106, 150 112, 152 158 Z" fill="url(#jHoodie)" stroke="#020617" stroke-width="2.5"/>
+    <path d="M 52 108 L 80 156 L 108 108 Z" fill="url(#jTee)"/>
+    <!-- Chubby Neck & Double Chin -->
+    <rect x="60" y="94" width="40" height="24" rx="11" fill="#fed7aa"/>
+    <circle cx="34" cy="76" r="9.5" fill="#fdba74" stroke="#9a3412" stroke-width="1.5"/>
+    <circle cx="126" cy="76" r="9.5" fill="#fdba74" stroke="#9a3412" stroke-width="1.5"/>
+    <ellipse cx="80" cy="74" rx="47" ry="43" fill="#fed7aa" stroke="#9a3412" stroke-width="2"/>
+    <path d="M 56 107 Q 80 118 104 107" fill="none" stroke="#ea580c" stroke-width="2.2" opacity="0.65"/>
+    <ellipse cx="50" cy="84" rx="8.5" ry="5" fill="#fb7185" opacity="0.35"/>
+    <ellipse cx="110" cy="84" rx="8.5" ry="5" fill="#fb7185" opacity="0.35"/>
+    <!-- Full Head of Black Hair (Not Bald) -->
+    <path d="M 31 72 C 27 31, 51 15, 80 15 C 109 15, 133 31, 129 72 C 124 52, 113 43, 101 41 C 93 47, 83 46, 76 40 C 63 47, 44 47, 31 72 Z" fill="#1e293b" stroke="#020617" stroke-width="2.2"/>
+    <path d="M 45 23 Q 70 10 99 18 Q 117 24 122 40" fill="none" stroke="#475569" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Eyebrows & Glasses -->
     <path d="M 51 ${60 + brow} Q 61 ${55 - brow} 71 ${60 + brow}" fill="none" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/>
     <path d="M 89 ${60 + brow} Q 99 ${55 - brow} 109 ${60 + brow}" fill="none" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/>
     <rect x="48" y="64" width="26" height="16" rx="4" fill="rgba(255,255,255,0.22)" stroke="#0f172a" stroke-width="2.4"/>
@@ -581,10 +584,6 @@ const CATALOG = [
   { id: 'os_5', cat: 'os', name: 'QuantumOS Ultimate 2034',           bench: 8500, watt: 0, price: 42000, dur: 999, year: 2034, tier: 5 }
 ];
 
-function getSpec(specId) {
-  return CATALOG.find(x => x.id === specId) || CATALOG[0];
-}
-
 /* ============================================================================
    5. TOURNAMENT RANKS (E -> S)
 ============================================================================ */
@@ -611,7 +610,7 @@ const RANKS = [
     id: 'B', name: 'Bランク・ジャパンAIマスターズ', minBench: 32000, stress: 25,
     prizes: [260000, 150000, 95000, 65000, 45000, 32000, 24000, 18000, 12000, 8000],
     rivalDurRange: [175, 220],
-    desc: '次世代世代パーツが飛び交うハイレベル大会！'
+    desc: '次世代パーツが飛び交うハイレベル大会！'
   },
   {
     id: 'A', name: 'Aランク・アジア電脳グランプリ', minBench: 52000, stress: 33,
@@ -646,11 +645,12 @@ const SELLERS = ['あきば工房', 'ジャンク王タカシ', 'パーツ沼の
    7. MAIN APPLICATION STATE & GAME LOGIC
 ============================================================================ */
 const App = (() => {
-  const SAVE_KEY = 'pasokon_battle_save_v2';
+  const SAVE_KEY = 'pasokon_battle_save_v4';
 
   let state = null;
   let currentTab = 'home';
   let selectedPcIdx = 0;
+  let comparePcIdx = 0;
   let selectedShopId = 'flea1';
   let shopSubMode = 'browse';
   let btoDraft = {};
@@ -701,6 +701,435 @@ const App = (() => {
     if (!state) return;
     state.logs.unshift(`[${state.year}/${state.month}月${state.week}週] ${msg}`);
     if (state.logs.length > 25) state.logs.pop();
+  }
+
+  /* ---------------------- SAVE / LOAD / DELETE ---------------------- */
+  function saveExists() {
+    try {
+      return !!localStorage.getItem(SAVE_KEY);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function writeSave() {
+    try {
+      if (!state) return;
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch (e) {
+      // Storage restriction fallback
+    }
+  }
+
+  function loadSave() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed.year !== 'number') return false;
+      state = Object.assign(createInitialState(), parsed);
+      state.pcs = Array.isArray(state.pcs) && state.pcs.length > 0
+        ? state.pcs
+        : [{ id: 1, name: '次郎1号機', parts: {} }];
+      state.pcs.forEach(pc => evaluatePC(pc));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function startNewGame() {
+    AudioSys.init();
+    AudioSys.se('click');
+    if (arenaTimer) {
+      clearInterval(arenaTimer);
+      arenaTimer = null;
+    }
+    inArena = false;
+    state = createInitialState();
+    selectedPcIdx = 0;
+    comparePcIdx = 0;
+    battleSelectedPcIdx = 0;
+    selectedShopId = 'flea1';
+    shopSubMode = 'browse';
+    fleaDraft = { selectedUids: [], price: 15000 };
+    generateWeeklyMarket();
+    writeSave();
+    document.getElementById('hud-header').classList.remove('hidden');
+    triggerOpeningAdv();
+  }
+
+  function continueGame() {
+    AudioSys.init();
+    AudioSys.se('click');
+    if (loadSave()) {
+      if (!state.market || Object.keys(state.market).length === 0) {
+        generateWeeklyMarket();
+      }
+      currentTab = 'home';
+      AudioSys.playBgm('room');
+      renderApp();
+    } else {
+      startNewGame();
+    }
+  }
+
+  function deleteSaveData() {
+    try {
+      localStorage.removeItem(SAVE_KEY);
+    } catch (e) {
+      // Ignore storage removal errors
+    }
+    state = null;
+    closeModal();
+    AudioSys.se('click');
+    renderTitle();
+  }
+
+  function confirmDeleteSave() {
+    AudioSys.se('click');
+    showModal(
+      'セーブデータの削除',
+      '保存されているセーブデータを完全に削除しますか？この操作は取り消せません。',
+      [
+        {
+          label: 'キャンセル',
+          cls: 'px-3 py-2 rounded-xl text-xs font-bold bg-slate-700 text-slate-200'
+        },
+        {
+          label: '削除する',
+          cls: 'px-3 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white',
+          onClick: () => deleteSaveData()
+        }
+      ]
+    );
+  }
+
+  /* ---------------------- MODAL DIALOG HELPERS ---------------------- */
+  function showModal(title, htmlContent, buttons = []) {
+    const backdrop = document.getElementById('modal-backdrop');
+    const titleEl = document.getElementById('modal-title');
+    const contentEl = document.getElementById('modal-content');
+    const btnWrap = document.getElementById('modal-buttons');
+    if (!backdrop || !titleEl || !contentEl || !btnWrap) return;
+
+    titleEl.textContent = title;
+    contentEl.innerHTML = htmlContent;
+    btnWrap.innerHTML = '';
+
+    const list = buttons.length > 0
+      ? buttons
+      : [{ label: '閉じる', cls: 'px-3 py-2 rounded-xl text-xs font-bold bg-sky-500 text-slate-950' }];
+
+    list.forEach(b => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = b.cls || 'px-3 py-2 rounded-xl text-xs font-bold bg-slate-700 text-white';
+      btn.textContent = b.label;
+      btn.addEventListener('click', () => {
+        AudioSys.se('click');
+        closeModal();
+        if (typeof b.onClick === 'function') b.onClick();
+      });
+      btnWrap.appendChild(btn);
+    });
+
+    backdrop.classList.remove('hidden');
+  }
+
+  function closeModal() {
+    const backdrop = document.getElementById('modal-backdrop');
+    if (backdrop) backdrop.classList.add('hidden');
+  }
+
+  /* ---------------------- ADV CUTSCENE ENGINE ---------------------- */
+  function startAdv(lines, onComplete = null) {
+    if (!lines || lines.length === 0) {
+      if (typeof onComplete === 'function') onComplete();
+      return;
+    }
+    advMode = true;
+    advQueue = lines;
+    advIdx = 0;
+    advDoneCb = onComplete;
+    document.getElementById('bottom-nav').classList.add('hidden');
+    AudioSys.playBgm('adv');
+    showAdvLine();
+  }
+
+  function showAdvLine() {
+    if (advTimer) {
+      clearInterval(advTimer);
+      advTimer = null;
+    }
+    const line = advQueue[advIdx];
+    if (!line) {
+      endAdv();
+      return;
+    }
+
+    advFull = line.text || '';
+    advDone = false;
+    let charPos = 0;
+
+    const main = document.getElementById('main-view');
+    main.innerHTML = `
+      <div onclick="App.nextAdv()" class="flex-1 flex flex-col justify-between p-3 bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950 text-slate-100 cursor-pointer">
+        <div class="flex items-center justify-between text-[11px] text-sky-300 font-bold">
+          <span>ADVイベント (${advIdx + 1}/${advQueue.length})</span>
+          <button type="button" onclick="event.stopPropagation(); App.skipAdv()" class="px-2 py-0.5 rounded bg-slate-800 border border-slate-600 text-[10px] text-slate-200">
+            スキップ <span class="keycap">S</span>
+          </button>
+        </div>
+
+        <div class="flex-1 flex flex-col items-center justify-center my-1">
+          <div class="anim-idle">${svgJiro(line.mood || 'normal', 150)}</div>
+        </div>
+
+        <div onclick="event.stopPropagation(); App.nextAdv()" class="bg-slate-900/95 border-2 border-sky-400/70 rounded-2xl p-3 shadow-xl">
+          <div class="text-xs font-black text-amber-300 mb-1">${line.speaker || '次郎'}</div>
+          <p id="adv-text" class="text-xs leading-relaxed text-slate-100 min-h-[58px]"></p>
+          <div class="mt-2 flex items-center justify-end text-[10px] text-sky-300 font-bold">
+            <span id="adv-prompt">タップ / Enter で次へ</span><span class="keycap">Enter</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const textEl = document.getElementById('adv-text');
+    advTimer = setInterval(() => {
+      charPos++;
+      if (textEl) textEl.textContent = advFull.slice(0, charPos);
+      if (charPos % 4 === 0) AudioSys.se('blip');
+      if (charPos >= advFull.length) {
+        clearInterval(advTimer);
+        advTimer = null;
+        advDone = true;
+      }
+    }, 22);
+  }
+
+  function nextAdv() {
+    if (!advMode) return;
+    if (!advDone) {
+      if (advTimer) {
+        clearInterval(advTimer);
+        advTimer = null;
+      }
+      const textEl = document.getElementById('adv-text');
+      if (textEl) textEl.textContent = advFull;
+      advDone = true;
+      return;
+    }
+    AudioSys.se('click');
+    advIdx++;
+    if (advIdx >= advQueue.length) {
+      endAdv();
+    } else {
+      showAdvLine();
+    }
+  }
+
+  function skipAdv() {
+    if (!advMode) return;
+    if (advTimer) {
+      clearInterval(advTimer);
+      advTimer = null;
+    }
+    AudioSys.se('click');
+    endAdv();
+  }
+
+  function endAdv() {
+    if (advTimer) {
+      clearInterval(advTimer);
+      advTimer = null;
+    }
+    advMode = false;
+    const cb = advDoneCb;
+    advDoneCb = null;
+    if (typeof cb === 'function') {
+      cb();
+    } else if (state) {
+      renderApp();
+    } else {
+      renderTitle();
+    }
+  }
+
+  function triggerOpeningAdv() {
+    startAdv([
+      {
+        speaker: 'ナレーション',
+        mood: 'normal',
+        text: '2027年1月1週。主人公・次郎（40歳・無職）。ぽっちゃり体型だが、自慢の黒髪はフサフサで艶やかだ。'
+      },
+      {
+        speaker: `次郎（${state.age}歳）`,
+        mood: 'happy',
+        text: '「よし、手元にある¥100,000と毎月1週目に入る¥40,000の固定収入を元手に、自作PCとAI競技『パソコンバトル』でSランク制覇を狙うぞ！」'
+      },
+      {
+        speaker: `次郎（${state.age}歳）`,
+        mood: 'build',
+        text: '「まずはパソコンを1台手に入れないとな。通販やフリマで安い中古完成品PCやパーツを探そう。注文した品物は翌週に届くぞ！」'
+      },
+      {
+        speaker: 'ナレーション',
+        mood: 'normal',
+        text: 'リミットは2037年1月1週までの10年間。パーツの相性・耐久度を見極め、栄光のSランク頂点を目指せ！'
+      }
+    ], () => {
+      currentTab = 'home';
+      AudioSys.playBgm('room');
+      renderApp();
+    });
+  }
+
+  function triggerChampionEndingAdv() {
+    AudioSys.playBgm('adv');
+    FX.confetti();
+    startAdv([
+      {
+        speaker: '実況アナウンサー',
+        mood: 'happy',
+        text: '「信じられない！！Sランク・ワールドAIチャンピオンシップ、すべての耐久負荷を跳ね除けて次郎マシンのAIが優勝です！！」'
+      },
+      {
+        speaker: `次郎（${state.age}歳）`,
+        mood: 'happy',
+        text: '「やったああああ！！10年間の自作PC道、パーツ選びも耐久管理もすべてが報われた瞬間だ！！」'
+      },
+      {
+        speaker: 'ナレーション',
+        mood: 'happy',
+        text: '【GAME CLEAR】次郎はSランク王座を勝ち取り、伝説のAIビルダーとして歴史に名を刻んだ！'
+      }
+    ], () => {
+      showModal(
+        '🏆 Sランク優勝・ゲームクリア！',
+        `おめでとうございます！次郎（${state.age}歳）はSランク大会で優勝を達成しました！<br>到達時期: ${state.year}年${state.month}月${state.week}週 / 所持金: ¥${state.money.toLocaleString()}`,
+        [
+          { label: 'タイトルへ戻る', cls: 'px-4 py-2 rounded-xl text-xs font-black bg-amber-400 text-slate-950', onClick: () => renderTitle() }
+        ]
+      );
+    });
+  }
+
+  function triggerTimeUpBadEnd() {
+    inArena = false;
+    AudioSys.se('lose');
+    startAdv([
+      {
+        speaker: 'ナレーション',
+        mood: 'sad',
+        text: '2037年1月1週――10年間の挑戦期限が到来した。'
+      },
+      {
+        speaker: `次郎（${state.age}歳）`,
+        mood: 'sad',
+        text: '「ううっ……10年経ってしまったか。だが俺の黒髪はまだフサフサだ！また最初から組み上げるぞ！」'
+      },
+      {
+        speaker: 'ナレーション',
+        mood: 'sad',
+        text: '【BAD END - タイムアップ】10年以内のSランク優勝には届かなかった。'
+      }
+    ], () => {
+      showModal(
+        'BAD END：タイムアップ（2037年1月1週）',
+        '10年間の期限を迎えました。タイトル画面から再挑戦できます。',
+        [
+          { label: 'タイトルへ戻る', cls: 'px-4 py-2 rounded-xl text-xs font-black bg-sky-500 text-slate-950', onClick: () => renderTitle() }
+        ]
+      );
+    });
+  }
+
+  function triggerBankruptBadEnd() {
+    inArena = false;
+    AudioSys.se('lose');
+    startAdv([
+      {
+        speaker: `次郎（${state.age}歳）`,
+        mood: 'sad',
+        text: '「資金もパーツも尽きてしまった……来月1週目の固定収入まで耐えきれなかったか……」'
+      },
+      {
+        speaker: 'ナレーション',
+        mood: 'sad',
+        text: '【BAD END - 資金ショート】パーツと資金をすべて失ってしまった。'
+      }
+    ], () => {
+      showModal(
+        'BAD END：資金ショート',
+        '資金とパーツが尽きてしまいました。タイトル画面から再挑戦できます。',
+        [
+          { label: 'タイトルへ戻る', cls: 'px-4 py-2 rounded-xl text-xs font-black bg-rose-500 text-white', onClick: () => renderTitle() }
+        ]
+      );
+    });
+  }
+
+  /* ---------------------- TITLE SCREEN ---------------------- */
+  function renderTitle() {
+    if (arenaTimer) {
+      clearInterval(arenaTimer);
+      arenaTimer = null;
+    }
+    inArena = false;
+    advMode = false;
+    state = null;
+    AudioSys.stopBgm();
+
+    document.getElementById('hud-header').classList.add('hidden');
+    document.getElementById('bottom-nav').classList.add('hidden');
+
+    const hasSave = saveExists();
+    const main = document.getElementById('main-view');
+    main.innerHTML = `
+      <div class="flex-1 flex flex-col items-center justify-between p-4 bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-900 text-slate-100 overflow-y-auto">
+        <div class="text-center mt-2">
+          <div class="inline-block px-3 py-0.5 rounded-full bg-sky-500/20 border border-sky-400/50 text-[10px] font-black text-sky-300 mb-1">
+            2027〜2037 自作PC＆AI耐久競技
+          </div>
+          <h1 class="text-3xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-amber-200 to-rose-400 drop-shadow">
+            パソコンバトル
+          </h1>
+          <p class="text-[11px] text-slate-300 mt-1">
+            主人公・次郎（40歳・無職・太め・黒髪）と挑む10年間
+          </p>
+        </div>
+
+        <div class="flex flex-col items-center my-2">
+          <div class="anim-idle">${svgJiro('happy', 136)}</div>
+          <div class="mt-1 px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700 text-[10px] text-slate-200 text-center">
+            パーツ相性・比較表示つき！耐久度が尽きる前にSランク制覇へ！
+          </div>
+        </div>
+
+        <div class="w-full max-w-xs flex flex-col gap-2 mb-2">
+          ${hasSave ? `
+            <button type="button" onclick="App.continueGame()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-slate-950 font-black text-sm shadow-lg">
+              ▶ 続きから遊ぶ <span class="keycap">Enter</span>
+            </button>
+          ` : ''}
+          <button type="button" onclick="App.startNewGame()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-sm shadow-lg">
+            ✨ はじめて遊ぶ (2027年1月1週) <span class="keycap">${hasSave ? 'N' : 'Enter'}</span>
+          </button>
+          ${hasSave ? `
+            <button type="button" onclick="App.confirmDeleteSave()" class="w-full py-2.5 rounded-2xl bg-rose-950/90 hover:bg-rose-900 border border-rose-500/70 text-rose-200 font-bold text-xs">
+              🗑 セーブデータを削除 <span class="keycap">Del</span>
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  /* ---------------------- PART & PC EVALUATION ---------------------- */
+  function getSpec(specId) {
+    return CATALOG.find(x => x.id === specId) || CATALOG[0];
   }
 
   function makePartInstance(specId, condition = 'new', customDurRatio = null) {
@@ -799,6 +1228,285 @@ const App = (() => {
       condition,
       durRatio
     }));
+  }
+
+  /* ---------------------- COMPARISON & COMPATIBILITY ASSIST ---------------------- */
+  function getComparePC() {
+    if (!state || !Array.isArray(state.pcs) || state.pcs.length === 0) return null;
+    if (comparePcIdx < 0 || comparePcIdx >= state.pcs.length) comparePcIdx = 0;
+    return state.pcs[comparePcIdx];
+  }
+
+  function setComparePcIdx(idx) {
+    AudioSys.se('click');
+    const parsed = parseInt(idx, 10);
+    if (!isNaN(parsed) && state && state.pcs[parsed]) {
+      comparePcIdx = parsed;
+      selectedPcIdx = parsed;
+    }
+    renderApp();
+  }
+
+  function renderComparePcBar(label = '比較対象の所持PC') {
+    if (!state || !state.pcs || state.pcs.length === 0) return '';
+    const refPc = getComparePC();
+    const refSt = refPc ? evaluatePC(refPc) : null;
+    const opts = state.pcs.map((p, i) => {
+      const s = evaluatePC(p);
+      return `<option value="${i}" ${i === comparePcIdx ? 'selected' : ''}>${p.name} (ベンチ:${s.bench.toLocaleString()})</option>`;
+    }).join('');
+    return `
+      <div class="p-2 rounded-xl bg-slate-900/95 border border-sky-500/40 flex items-center justify-between gap-2 text-[11px] shrink-0">
+        <span class="font-black text-sky-300 shrink-0">🔍 ${label}:</span>
+        <select onchange="App.setComparePcIdx(this.value)" class="flex-1 min-w-0 bg-slate-950 text-white border border-slate-600 rounded-lg px-2 py-1 text-[11px] font-bold">
+          ${opts}
+        </select>
+        ${refSt ? `<span class="text-[10px] text-slate-300 shrink-0">消費${refSt.totalWatt}W/電${refSt.supplyWatt}W</span>` : ''}
+      </div>
+    `;
+  }
+
+  function analyzeCandidatePart(spec, condition = 'new', refPc = null) {
+    const targetPc = refPc || getComparePC();
+    const partsMap = targetPc ? targetPc.parts : {};
+    const currentItem = partsMap ? partsMap[spec.cat] : null;
+    const currentSpec = currentItem ? getSpec(currentItem.specId) : null;
+
+    const warnings = [];
+    const notes = [];
+
+    if (spec.cat === 'cpu') {
+      const mbItem = partsMap ? partsMap.mobo : null;
+      if (mbItem) {
+        const mbSp = getSpec(mbItem.specId);
+        if (mbSp.socket && spec.socket && mbSp.socket !== spec.socket) {
+          warnings.push(`ソケット不一致！比較PCのマザボ「${mbSp.name}」は【${mbSp.socket}】用ですが、このCPUは【${spec.socket}】用です。`);
+        } else if (mbSp.socket && spec.socket) {
+          notes.push(`ソケット一致 (${spec.socket})`);
+        }
+      } else {
+        notes.push(`CPUソケット: ${spec.socket}`);
+      }
+    }
+
+    if (spec.cat === 'mobo') {
+      const cpuItem = partsMap ? partsMap.cpu : null;
+      if (cpuItem) {
+        const cpuSp = getSpec(cpuItem.specId);
+        if (cpuSp.socket && spec.socket && cpuSp.socket !== spec.socket) {
+          warnings.push(`ソケット不一致！比較PCのCPU「${cpuSp.name}」は【${cpuSp.socket}】ですが、このマザボは【${spec.socket}】です。`);
+        } else if (cpuSp.socket && spec.socket) {
+          notes.push(`CPUソケット一致 (${spec.socket})`);
+        }
+      }
+      const ramItem = partsMap ? partsMap.ram : null;
+      if (ramItem) {
+        const ramSp = getSpec(ramItem.specId);
+        if (ramSp.ramType && spec.ramType && ramSp.ramType !== spec.ramType) {
+          warnings.push(`メモリ規格不一致！比較PCのメモリ「${ramSp.name}」は【${ramSp.ramType}】ですが、このマザボは【${spec.ramType}】対応です。`);
+        } else if (ramSp.ramType && spec.ramType) {
+          notes.push(`メモリ規格一致 (${spec.ramType})`);
+        }
+      }
+    }
+
+    if (spec.cat === 'ram') {
+      const mbItem = partsMap ? partsMap.mobo : null;
+      if (mbItem) {
+        const mbSp = getSpec(mbItem.specId);
+        if (mbSp.ramType && spec.ramType && mbSp.ramType !== spec.ramType) {
+          warnings.push(`メモリ規格不一致！比較PCのマザボ「${mbSp.name}」は【${mbSp.ramType}】用ですが、このメモリは【${spec.ramType}】です。`);
+        } else if (mbSp.ramType && spec.ramType) {
+          notes.push(`マザボとメモリ規格一致 (${spec.ramType})`);
+        }
+      }
+    }
+
+    if (spec.cat === 'psu' && targetPc) {
+      const st = evaluatePC(targetPc);
+      const newSupply = spec.supply || 0;
+      if (newSupply < st.totalWatt) {
+        warnings.push(`電源容量不足！比較PCの推定消費電力は【${st.totalWatt}W】ですが、この電源は【${newSupply}W】しかありません。`);
+      } else {
+        notes.push(`電源余裕: +${newSupply - st.totalWatt}W (${newSupply}W / 消費${st.totalWatt}W)`);
+      }
+    } else if ((spec.watt || 0) > 0 && targetPc) {
+      const st = evaluatePC(targetPc);
+      const oldWatt = currentSpec ? (currentSpec.watt || 0) : 0;
+      const projWatt = Math.max(0, st.totalWatt - oldWatt + (spec.watt || 0));
+      if (st.supplyWatt > 0 && projWatt > st.supplyWatt) {
+        warnings.push(`電源容量オーバー注意！交換すると推定消費【${projWatt}W】となり、電源【${st.supplyWatt}W】を超えます。`);
+      } else if (st.supplyWatt > 0) {
+        notes.push(`交換後推定消費: ${projWatt}W / 電源${st.supplyWatt}W`);
+      }
+    }
+
+    if (condition === 'junk') {
+      warnings.push('ジャンク/現状品のため、破損（耐久0）や初期不良のリスクが高いです。');
+    }
+
+    let deltaVerdict = 'NEW';
+    let deltaText = '未装着スロットに追加';
+    let deltaColor = 'bg-sky-500/20 text-sky-200 border-sky-400/50';
+
+    if (currentSpec) {
+      const diff = spec.bench - currentSpec.bench;
+      const diffStr = diff > 0 ? `+${diff.toLocaleString()}` : diff.toLocaleString();
+      if (diff > 150) {
+        deltaVerdict = 'UPGRADE';
+        deltaText = `▲ 強化 (ベンチ ${diffStr} / 今: ${currentSpec.name})`;
+        deltaColor = 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60';
+      } else if (diff < -150) {
+        deltaVerdict = 'DOWNGRADE';
+        deltaText = `▼ 性能低下 (ベンチ ${diffStr} / 今: ${currentSpec.name})`;
+        deltaColor = 'bg-amber-500/20 text-amber-200 border-amber-400/60';
+      } else {
+        deltaVerdict = 'SIDEGRADE';
+        deltaText = `＝ 同等クラス (ベンチ ${diffStr} / 今: ${currentSpec.name})`;
+        deltaColor = 'bg-slate-700/80 text-slate-200 border-slate-500/60';
+      }
+    }
+
+    return {
+      currentSpec,
+      warnings,
+      notes,
+      deltaVerdict,
+      deltaText,
+      deltaColor,
+      hasWarning: warnings.length > 0
+    };
+  }
+
+  function renderPartComparisonBlock(spec, condition = 'new', durRatio = 1, refPc = null) {
+    const info = analyzeCandidatePart(spec, condition, refPc);
+    const condLabel = spec.cat === 'os'
+      ? 'OSソフト'
+      : condition === 'new'
+      ? '新品'
+      : condition === 'junk'
+      ? 'ジャンク(破損大)'
+      : `中古(耐久目安 約${Math.round((durRatio ?? 0.75) * 100)}%)`;
+
+    const specTag = spec.socket
+      ? `ソケット:${spec.socket}`
+      : spec.ramType
+      ? `メモリ:${spec.ramType}`
+      : spec.supply
+      ? `出力:${spec.supply}W`
+      : `消費:${spec.watt || 0}W`;
+
+    const warnHtml = info.warnings.map(w => `
+      <div class="mt-1 px-2 py-1 rounded bg-rose-950/90 border border-rose-500/80 text-[10px] font-black text-rose-200 leading-snug">
+        ⚠ ${w}
+      </div>
+    `).join('');
+
+    const noteHtml = info.notes.map(n => `
+      <span class="px-1.5 py-0.5 rounded bg-slate-900/90 text-[9px] text-cyan-200 border border-slate-700">${n}</span>
+    `).join('');
+
+    return `
+      <div class="mt-1.5 p-2 rounded-xl bg-slate-900/85 border border-slate-700/90 text-[10px]">
+        <div class="flex flex-wrap items-center justify-between gap-1">
+          <span class="px-1.5 py-0.5 rounded border font-black ${info.deltaColor}">${info.deltaText}</span>
+          <span class="text-slate-300 font-bold">${condLabel} ・ ベンチ+${spec.bench.toLocaleString()} ・ ${specTag} ・ 最大耐久${spec.dur}</span>
+        </div>
+        ${noteHtml ? `<div class="mt-1 flex flex-wrap gap-1">${noteHtml}</div>` : ''}
+        ${warnHtml}
+      </div>
+    `;
+  }
+
+  function renderBundleBreakdownHtml(partsList, refPc = null) {
+    const targetPc = refPc || getComparePC();
+    const totalBench = partsList.reduce((acc, p) => {
+      const sp = getSpec(p.specId);
+      const isBroken = p.condition === 'junk' && (p.durRatio ?? 0) <= 0.05;
+      return acc + (isBroken ? 0 : sp.bench);
+    }, 0);
+    const totalWatt = partsList.reduce((acc, p) => acc + (getSpec(p.specId).watt || 0), 0);
+    const psuPart = partsList.find(p => getSpec(p.specId).cat === 'psu');
+    const bundleSupply = psuPart ? (getSpec(psuPart.specId).supply || 0) : (targetPc ? evaluatePC(targetPc).supplyWatt : 0);
+
+    const cpuInBundle = partsList.find(p => getSpec(p.specId).cat === 'cpu');
+    const moboInBundle = partsList.find(p => getSpec(p.specId).cat === 'mobo');
+    const ramInBundle = partsList.find(p => getSpec(p.specId).cat === 'ram');
+    const internalWarnings = [];
+
+    if (cpuInBundle && moboInBundle) {
+      const cSp = getSpec(cpuInBundle.specId);
+      const mSp = getSpec(moboInBundle.specId);
+      if (cSp.socket !== mSp.socket) {
+        internalWarnings.push(`セット内ソケット不一致: CPU(${cSp.socket}) と マザボ(${mSp.socket}) が合いません！`);
+      }
+    }
+    if (moboInBundle && ramInBundle) {
+      const mSp = getSpec(moboInBundle.specId);
+      const rSp = getSpec(ramInBundle.specId);
+      if (mSp.ramType !== rSp.ramType) {
+        internalWarnings.push(`セット内メモリ不一致: マザボ(${mSp.ramType}) と メモリ(${rSp.ramType}) が合いません！`);
+      }
+    }
+    if (bundleSupply > 0 && totalWatt > bundleSupply) {
+      internalWarnings.push(`セット内電力注意: 消費${totalWatt}W ＞ 電源${bundleSupply}W`);
+    }
+
+    const rows = partsList.map(p => {
+      const sp = getSpec(p.specId);
+      const catLabel = (PART_CATEGORIES.find(c => c.key === sp.cat) || { label: sp.cat }).label;
+      const comp = analyzeCandidatePart(sp, p.condition || 'used', targetPc);
+      const condShort = sp.cat === 'os'
+        ? 'OS'
+        : p.condition === 'new'
+        ? '新品'
+        : p.condition === 'junk'
+        ? '💥ジャンク'
+        : `中古(約${Math.round((p.durRatio ?? 0.75) * 100)}%)`;
+
+      const badge = comp.hasWarning
+        ? `<span class="px-1.5 py-0.5 rounded bg-rose-600 text-white text-[9px] font-black">⚠要注意</span>`
+        : comp.deltaVerdict === 'UPGRADE'
+        ? `<span class="px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 text-[9px] font-black">▲強化</span>`
+        : comp.deltaVerdict === 'DOWNGRADE'
+        ? `<span class="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 text-[9px] font-black">▼低下</span>`
+        : comp.deltaVerdict === 'SIDEGRADE'
+        ? `<span class="px-1.5 py-0.5 rounded bg-slate-600 text-slate-100 text-[9px] font-black">＝同等</span>`
+        : `<span class="px-1.5 py-0.5 rounded bg-sky-500 text-slate-950 text-[9px] font-black">+新規</span>`;
+
+      const warnDetail = comp.hasWarning
+        ? `<div class="text-[9px] text-rose-300 font-bold mt-0.5">⚠ ${comp.warnings[0]}</div>`
+        : comp.currentSpec
+        ? `<div class="text-[9px] text-slate-400 mt-0.5">現PC[${catLabel}]: ${comp.currentSpec.name} (ベンチ${comp.currentSpec.bench.toLocaleString()})</div>`
+        : '';
+
+      return `
+        <div class="p-1.5 rounded-lg bg-slate-950/90 border ${comp.hasWarning ? 'border-rose-500/70' : 'border-slate-800'} text-[10px]">
+          <div class="flex items-center justify-between gap-1.5">
+            <div class="min-w-0">
+              <span class="text-[9px] font-black px-1 py-0.5 rounded bg-slate-800 text-sky-300 mr-1">${catLabel}</span>
+              <span class="font-bold text-white">${sp.name}</span>
+              <span class="text-slate-400 ml-1">[${condShort} / ベンチ+${sp.bench.toLocaleString()}]</span>
+            </div>
+            <div class="shrink-0">${badge}</div>
+          </div>
+          ${warnDetail}
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="mt-1.5 p-2 rounded-xl bg-slate-900/95 border border-indigo-500/40 text-[10px]">
+        <div class="flex flex-wrap items-center justify-between gap-1 mb-1.5 font-black text-indigo-200">
+          <span>📋 セット内容 (${partsList.length}点)</span>
+          <span>合計ベンチ: <strong class="text-sky-300">${totalBench.toLocaleString()}</strong> / 推定消費: <strong class="text-amber-300">${totalWatt}W</strong></span>
+        </div>
+        ${internalWarnings.map(w => `<div class="mb-1.5 px-2 py-1 rounded bg-rose-950 border border-rose-500 text-rose-200 font-black">⚠ ${w}</div>`).join('')}
+        <div class="flex flex-col gap-1 max-h-48 overflow-y-auto pr-0.5">
+          ${rows}
+        </div>
+      </div>
+    `;
   }
 
   /* ---------------------- MARKET GENERATION ---------------------- */
@@ -969,14 +1677,12 @@ const App = (() => {
       }
     }
 
-    // 10-year limit: 2037 Year 1 Month 1 Week -> Time Up Bad End
     if (state.year >= 2037 && state.month === 1 && state.week === 1) {
       writeSave();
       triggerTimeUpBadEnd();
       return;
     }
 
-    // Deliver in-transit orders ordered last week
     const arrivedMessages = [];
     if (Array.isArray(state.deliveries) && state.deliveries.length > 0) {
       state.deliveries.forEach(del => {
@@ -1006,7 +1712,6 @@ const App = (() => {
       state.deliveries = [];
     }
 
-    // Monthly Week 1 fixed income: +40,000 yen
     let monthlySalaryMsg = '';
     if (state.week === 1) {
       const salary = 40000;
@@ -1017,7 +1722,6 @@ const App = (() => {
 
     arrivedMessages.forEach(m => addLog(m));
 
-    // Resolve Jiro's Flea Market Listings
     const soldLogs = [];
     state.listings = state.listings.filter(lst => {
       lst.weeksListed++;
@@ -1047,7 +1751,6 @@ const App = (() => {
     generateWeeklyMarket();
     writeSave();
 
-    // Birthday Event: Every October Week 2
     if (state.month === 10 && state.week === 2) {
       state.age++;
       const bonus = 15000;
@@ -1062,7 +1765,6 @@ const App = (() => {
       return;
     }
 
-    // New Hardware Generation Announcement on Jan Week 1
     if (state.month === 1 && state.week === 1 && !state.flags.announcedYears[state.year]) {
       state.flags.announcedYears[state.year] = true;
       const newReleases = CATALOG.filter(s => s.year === state.year);
@@ -1076,7 +1778,6 @@ const App = (() => {
       }
     }
 
-    // Delivery / Salary ADV notice
     if (monthlySalaryMsg || arrivedMessages.length > 0) {
       const lines = [];
       if (monthlySalaryMsg) {
@@ -1091,7 +1792,6 @@ const App = (() => {
       return;
     }
 
-    // Bankruptcy check
     const totalAssetsCount =
       state.inventory.length +
       state.deliveries.length +
@@ -1108,307 +1808,6 @@ const App = (() => {
       FX.confetti();
     }
     renderApp();
-  }
-
-  /* ---------------------- ADV CUTSCENE ENGINE ---------------------- */
-  function startAdv(lines, onComplete) {
-    advMode = true;
-    advQueue = lines;
-    advIdx = 0;
-    advDoneCb = onComplete;
-    document.getElementById('bottom-nav').classList.add('hidden');
-    AudioSys.playBgm('adv');
-    renderAdvFrame();
-  }
-
-  function renderAdvFrame() {
-    if (advTimer) clearInterval(advTimer);
-    const line = advQueue[advIdx];
-    if (!line) {
-      advMode = false;
-      if (advDoneCb) advDoneCb();
-      return;
-    }
-
-    const main = document.getElementById('main-view');
-    main.innerHTML = `
-      <div onclick="App.nextAdv()" class="flex-1 flex flex-col justify-between p-3.5 bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950 cursor-pointer">
-        <div class="flex items-center justify-between">
-          <span class="px-2.5 py-1 rounded-lg bg-sky-500/20 border border-sky-400/40 text-sky-200 text-[11px] font-black">
-            📖 ストーリーイベント
-          </span>
-          <button type="button" onclick="event.stopPropagation(); App.skipAdv()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[11px] font-bold text-slate-300">
-            スキップ <span class="keycap">S</span>
-          </button>
-        </div>
-
-        <div class="flex-1 flex flex-col items-center justify-center my-2">
-          <div class="p-3 rounded-3xl bg-slate-800/60 border border-slate-700/80 shadow-xl anim-idle">
-            ${svgJiro(line.mood || 'normal', 150)}
-          </div>
-          <div class="mt-2 px-3 py-0.5 rounded-full bg-slate-800 border border-slate-600 text-[11px] font-bold text-slate-300">
-            次郎（${state ? state.age : 40}歳・元エンジニア志望の無職）
-          </div>
-        </div>
-
-        <div class="bg-slate-900/95 border-2 border-sky-400/75 rounded-2xl p-3.5 shadow-2xl min-h-[135px] flex flex-col justify-between">
-          <div>
-            <div class="inline-block px-2.5 py-0.5 rounded-lg bg-sky-400 text-slate-950 font-black text-xs mb-1.5">
-              ${line.speaker}
-            </div>
-            <p id="adv-box-text" class="text-sm leading-relaxed text-white font-bold"></p>
-          </div>
-          <div class="flex items-center justify-between text-[11px] text-sky-300 mt-2">
-            <span>${advIdx + 1} / ${advQueue.length}</span>
-            <span class="font-black animate-bounce">▼ タップ / Enter</span>
-          </div>
-        </div>
-      </div>
-    `;
-
-    advFull = line.text;
-    advDone = false;
-    let p = 0;
-    const el = document.getElementById('adv-box-text');
-    advTimer = setInterval(() => {
-      p++;
-      if (el) el.textContent = advFull.slice(0, p);
-      if (p % 3 === 0) AudioSys.se('blip');
-      if (p >= advFull.length) {
-        clearInterval(advTimer);
-        advTimer = null;
-        advDone = true;
-      }
-    }, 22);
-  }
-
-  function nextAdv() {
-    if (!advDone) {
-      if (advTimer) clearInterval(advTimer);
-      advTimer = null;
-      const el = document.getElementById('adv-box-text');
-      if (el) el.textContent = advFull;
-      advDone = true;
-      return;
-    }
-    AudioSys.se('click');
-    advIdx++;
-    if (advIdx >= advQueue.length) {
-      advMode = false;
-      if (advDoneCb) advDoneCb();
-    } else {
-      renderAdvFrame();
-    }
-  }
-
-  function skipAdv() {
-    if (advTimer) clearInterval(advTimer);
-    AudioSys.se('click');
-    advMode = false;
-    if (advDoneCb) advDoneCb();
-  }
-
-  function triggerOpeningAdv() {
-    startAdv([
-      { speaker: 'ナレーション', mood: 'normal', text: '2027年1月1週目。東京の片隅にあるワンルームアパートに、ひとりの男がいた。' },
-      { speaker: '次郎（40歳）', mood: 'normal', text: '「ふぅ……現在40歳、無職。体重は少し増えたが、髪の毛はまだまだフサフサだ！」' },
-      { speaker: '次郎（40歳）', mood: 'build', text: '「手元にある全財産は10万円。今はパソコン1台すら持っていないが……世界中で大ブームのAI競技『パソコンバトル』で頂点を目指す！」' },
-      { speaker: '次郎（40歳）', mood: 'happy', text: '「フリマや通販でパーツを集めて自作PCを組み、2037年1月までの10年間で最高峰『Sランク』を制覇してやるぜ！」' }
-    ], () => {
-      state.flags.seenOpening = true;
-      writeSave();
-      renderApp();
-    });
-  }
-
-  function triggerChampionEndingAdv() {
-    AudioSys.se('win');
-    FX.confetti();
-    startAdv([
-      { speaker: '実況アナウンサー', mood: 'happy', text: '『信じられない！！40代から自作PCを始めた男・次郎のマシンが、最後の1台まで稼働し続けSランク優勝だーー！！』' },
-      { speaker: `次郎（${state.age}歳）`, mood: 'happy', text: '「やった……やったぞおおお！！ボロボロになりながらも、俺の組んだパソコンが世界一になったんだ！！」' },
-      { speaker: 'ナレーション', mood: 'happy', text: '中古パーツの目利きから始まり、数々の破損と挫折を乗り越えた次郎は、伝説のPCビルダーとして名を刻んだ！' },
-      { speaker: '祝・ゲームクリア！', mood: 'happy', text: `【エンディング達成】${state.year}年${state.month}月${state.week}週（${state.age}歳）でSランク制覇！おめでとう！` }
-    ], () => {
-      FX.confetti();
-      renderApp();
-    });
-  }
-
-  function triggerTimeUpBadEnd() {
-    AudioSys.se('lose');
-    startAdv([
-      { speaker: 'ナレーション', mood: 'sad', text: '2037年1月1週目――ついに約束の10年間が経過してしまった。' },
-      { speaker: `次郎（${state.age}歳）`, mood: 'sad', text: '「くそっ……Sランクの壁は高かったか……。気づけば俺も50歳になってしまったな……」' },
-      { speaker: 'バッドエンド：10年のタイムアップ', mood: 'sad', text: 'Sランク未達成のまま2037年を迎えてしまった。タイトル画面から再挑戦しよう！' }
-    ], () => renderTitle());
-  }
-
-  function triggerBankruptBadEnd() {
-    AudioSys.se('lose');
-    startAdv([
-      { speaker: 'ナレーション', mood: 'sad', text: '資金もパーツもすべて尽き果て、パソコンを組む手段がなくなってしまった……。' },
-      { speaker: `次郎（${state.age}歳）`, mood: 'sad', text: '「パーツが全部壊れて資金もゼロか……無茶な大会出場をしすぎたな……」' },
-      { speaker: 'バッドエンド：電脳破産', mood: 'sad', text: '資金・資産が底をつきました。タイトル画面から再挑戦しよう！' }
-    ], () => renderTitle());
-  }
-
-  /* ---------------------- SAVE & MODAL SYSTEM ---------------------- */
-  function saveExists() {
-    return !!localStorage.getItem(SAVE_KEY);
-  }
-
-  function writeSave() {
-    try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-    } catch (e) {
-      // Ignore storage quota errors
-    }
-  }
-
-  function loadSave() {
-    try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return false;
-      state = JSON.parse(raw);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function showModal(title, htmlContent, buttons) {
-    document.getElementById('modal-title').textContent = title;
-    document.getElementById('modal-content').innerHTML = htmlContent;
-    const box = document.getElementById('modal-buttons');
-    box.innerHTML = '';
-    buttons.forEach(b => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = b.cls || 'px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-700 hover:bg-slate-600 text-white';
-      btn.textContent = b.label;
-      btn.onclick = () => {
-        AudioSys.se('click');
-        closeModal();
-        if (b.onClick) b.onClick();
-      };
-      box.appendChild(btn);
-    });
-    document.getElementById('modal-backdrop').classList.remove('hidden');
-  }
-
-  function closeModal() {
-    document.getElementById('modal-backdrop').classList.add('hidden');
-  }
-
-  function confirmDeleteSave() {
-    AudioSys.se('click');
-    showModal(
-      'セーブデータの削除',
-      '保存されている進行データ・所持PC・資金をすべて削除しますか？',
-      [
-        { label: 'キャンセル', cls: 'px-3 py-2 rounded-xl text-xs font-bold bg-slate-700 text-slate-200' },
-        {
-          label: '削除する',
-          cls: 'px-3 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white',
-          onClick: () => {
-            localStorage.removeItem(SAVE_KEY);
-            state = null;
-            renderTitle();
-          }
-        }
-      ]
-    );
-  }
-
-  /* ---------------------- TITLE SCREEN ---------------------- */
-  function renderTitle() {
-    advMode = false;
-    inArena = false;
-    if (arenaTimer) clearInterval(arenaTimer);
-    document.getElementById('hud-header').classList.add('hidden');
-    document.getElementById('bottom-nav').classList.add('hidden');
-    AudioSys.playBgm('room');
-
-    const hasSave = saveExists();
-    const main = document.getElementById('main-view');
-    main.innerHTML = `
-      <div class="flex-1 flex flex-col justify-between p-4 bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950 text-center overflow-y-auto">
-        <div class="mt-2">
-          <span class="inline-block px-3 py-1 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-300 text-[11px] font-black tracking-wider">
-            自作PCクラフト ＆ AI耐久サバイバル競技
-          </span>
-          <h1 class="mt-2 text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-cyan-200 to-amber-300 drop-shadow">
-            パソコンバトル
-          </h1>
-          <p class="mt-1 text-xs text-slate-300">
-            2027年〜2037年の10年間で最高峰Sランクを制覇せよ！
-          </p>
-        </div>
-
-        <div class="my-2 flex flex-col items-center">
-          <div class="p-3 rounded-3xl bg-slate-800/75 border border-slate-700 shadow-2xl anim-idle">
-            ${svgJiro('happy', 150)}
-            <div class="mt-1 px-3 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-[11px] font-bold">
-              主人公：次郎（40歳・無職・太め・黒髪フサフサ）
-            </div>
-          </div>
-          <div class="mt-2.5 grid grid-cols-3 gap-1.5 w-full text-[10px] text-slate-300">
-            <div class="bg-slate-800/70 p-2 rounded-xl border border-slate-700">
-              <div class="text-sky-300 font-black">8パーツ+OS</div>
-              <div>本格自作＆BTO</div>
-            </div>
-            <div class="bg-slate-800/70 p-2 rounded-xl border border-slate-700">
-              <div class="text-amber-300 font-black">全7サイト</div>
-              <div>翌週配送＆月4万</div>
-            </div>
-            <div class="bg-slate-800/70 p-2 rounded-xl border border-slate-700">
-              <div class="text-rose-300 font-black">耐久バトル</div>
-              <div>破損＝AI停止！</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-2 mb-1">
-          ${hasSave ? `
-            <button type="button" onclick="App.continueGame()" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black text-base shadow-lg active:scale-95 transition">
-              つづきから遊ぶ <span class="keycap">Enter</span>
-            </button>
-          ` : ''}
-          <button type="button" onclick="App.startNewGame()" class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-sky-400 to-indigo-500 text-slate-950 font-black text-sm shadow-lg active:scale-95 transition">
-            はじめから（2027年1月1週・資金10万円） <span class="keycap">N</span>
-          </button>
-          ${hasSave ? `
-            <button type="button" onclick="App.confirmDeleteSave()" class="w-full py-2 px-3 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-700/60 text-rose-200 text-xs font-bold">
-              セーブデータを削除する <span class="keycap">Del</span>
-            </button>
-          ` : ''}
-          <p class="text-[10px] text-slate-400">
-            スマホ：画面タップ操作 ／ PC：数字キー[1-5]・[Enter]・[M]対応
-          </p>
-        </div>
-      </div>
-    `;
-  }
-
-  function startNewGame() {
-    AudioSys.init();
-    AudioSys.se('buy');
-    state = createInitialState();
-    generateWeeklyMarket();
-    writeSave();
-    triggerOpeningAdv();
-  }
-
-  function continueGame() {
-    AudioSys.init();
-    AudioSys.se('click');
-    if (loadSave()) {
-      if (!state.market || Object.keys(state.market).length === 0) generateWeeklyMarket();
-      renderApp();
-    } else {
-      startNewGame();
-    }
   }
 
   /* ---------------------- MAIN SHELL RENDERER ---------------------- */
@@ -1488,7 +1887,7 @@ const App = (() => {
             <p class="text-[11px] text-slate-200 mt-0.5 leading-snug">
               ${state.pcs.some(p => evaluatePC(p).ok)
                 ? '「マシンは準備万端！大会で賞金を稼ぐか、さらなる強化を狙おう！」'
-                : '「まずは通販やフリマで中古完成品PCやパーツを集めよう！毎月1週目に¥40,000の固定収入も入るぞ！」'}
+                : '「まずは通販やフリマで安い中古完成品PCやパーツを集めよう！毎月1週目に¥40,000の固定収入も入るぞ！」'}
             </p>
             <div class="mt-1.5 flex items-center gap-1 flex-wrap">
               <span class="text-[10px] text-slate-400">制覇:</span>${rankBadges}
@@ -1570,6 +1969,7 @@ const App = (() => {
   /* ---------------------- TAB 2: PC BUILDER & ASSEMBLY ---------------------- */
   function renderBuildTab() {
     if (!state.pcs[selectedPcIdx]) selectedPcIdx = 0;
+    comparePcIdx = selectedPcIdx;
     const pc = state.pcs[selectedPcIdx];
     const st = evaluatePC(pc);
 
@@ -1585,7 +1985,16 @@ const App = (() => {
       const compatCount = state.inventory.filter(it => getSpec(it.specId).cat === cat.key).length;
 
       let durBadge = '';
+      let specMeta = '';
       if (equipped && spec) {
+        specMeta = spec.socket
+          ? `ソケット:${spec.socket}`
+          : spec.ramType
+          ? `メモリ:${spec.ramType}`
+          : spec.supply
+          ? `電源:${spec.supply}W`
+          : `消費:${spec.watt || 0}W / ベンチ+${spec.bench.toLocaleString()}`;
+
         if (spec.cat === 'os') {
           durBadge = '<span class="text-[10px] text-sky-300 font-bold">ライセンス済</span>';
         } else if (equipped.dur <= 0) {
@@ -1601,9 +2010,10 @@ const App = (() => {
           <div class="flex items-center gap-2 min-w-0">
             ${equipped ? svgPartIcon(cat.key, spec.tier, equipped.dur <= 0 && spec.cat !== 'os', 34) : '<div class="w-[34px] h-[34px] rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-[10px] text-slate-500">空</div>'}
             <div class="min-w-0">
-              <div class="flex items-center gap-1.5">
+              <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-900 text-slate-300">${cat.label}</span>
                 ${durBadge}
+                ${specMeta ? `<span class="text-[9px] text-slate-400">${specMeta}</span>` : ''}
               </div>
               <div class="text-xs font-bold text-white truncate mt-0.5">
                 ${spec ? spec.name : '<span class="text-slate-500">未装着</span>'}
@@ -1620,6 +2030,15 @@ const App = (() => {
       `;
     }).join('');
 
+    const issueListHtml = st.issues.length > 0
+      ? `<div class="mt-1.5 p-2 rounded-xl bg-rose-950/70 border border-rose-500/60 text-[10px] text-rose-200 font-bold">
+           <div class="font-black text-rose-300 mb-0.5">💡 現在の構成チェック（初心者ガイド）:</div>
+           ${st.issues.map(iss => `<div>・${iss}</div>`).join('')}
+         </div>`
+      : `<div class="mt-1.5 px-2 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/50 text-[10px] text-emerald-300 font-bold">
+           ✔ ソケット・メモリ・電源・OSすべてOK！大会に出場できます。
+         </div>`;
+
     const main = document.getElementById('main-view');
     main.innerHTML = `
       <div class="flex-1 flex flex-col justify-between p-3 gap-2 overflow-y-auto text-slate-100">
@@ -1628,21 +2047,23 @@ const App = (() => {
           <button type="button" onclick="App.addNewPcSlot()" class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-600 text-[11px] font-bold text-sky-300 shrink-0">+追加</button>
         </div>
 
-        <div class="bg-slate-900/95 border ${st.ok ? 'border-emerald-400/70' : 'border-amber-400/60'} rounded-2xl p-2.5 flex items-center gap-2.5 shrink-0">
-          ${svgAssembledPC(pc, 78)}
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-black text-white">${pc.name}</span>
-              <span class="px-2 py-0.5 rounded-md text-[10px] font-black ${st.ok ? 'bg-emerald-500 text-slate-950' : 'bg-amber-500 text-slate-950'}">
-                ${st.ok ? '起動・大会OK' : '未完成/要調整'}
-              </span>
+        <div class="bg-slate-900/95 border ${st.ok ? 'border-emerald-400/70' : 'border-amber-400/60'} rounded-2xl p-2.5 shrink-0">
+          <div class="flex items-center gap-2.5">
+            ${svgAssembledPC(pc, 74)}
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-black text-white">${pc.name}</span>
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-black ${st.ok ? 'bg-emerald-500 text-slate-950' : 'bg-amber-500 text-slate-950'}">
+                  ${st.ok ? '起動・大会OK' : '未完成/要調整'}
+                </span>
+              </div>
+              <div class="mt-1 grid grid-cols-2 gap-1 text-[11px]">
+                <div class="bg-slate-800 px-2 py-0.5 rounded">ベンチ: <strong class="text-sky-300">${st.bench.toLocaleString()}</strong></div>
+                <div class="bg-slate-800 px-2 py-0.5 rounded">電力: <strong class="${st.totalWatt > st.supplyWatt ? 'text-rose-400' : 'text-emerald-300'}">${st.totalWatt}/${st.supplyWatt}W</strong></div>
+              </div>
             </div>
-            <div class="mt-1 grid grid-cols-2 gap-1 text-[11px]">
-              <div class="bg-slate-800 px-2 py-0.5 rounded">ベンチ: <strong class="text-sky-300">${st.bench.toLocaleString()}</strong></div>
-              <div class="bg-slate-800 px-2 py-0.5 rounded">電力: <strong class="${st.totalWatt > st.supplyWatt ? 'text-rose-400' : 'text-emerald-300'}">${st.totalWatt}/${st.supplyWatt}W</strong></div>
-            </div>
-            ${!st.ok ? `<div class="mt-1 text-[10px] text-rose-300 font-bold truncate">⚠ ${st.issues[0]}</div>` : ''}
           </div>
+          ${issueListHtml}
         </div>
 
         <div class="flex flex-col gap-1.5">
@@ -1664,6 +2085,7 @@ const App = (() => {
   function selectPcSlot(idx) {
     AudioSys.se('click');
     selectedPcIdx = idx;
+    comparePcIdx = idx;
     renderApp();
   }
 
@@ -1671,6 +2093,7 @@ const App = (() => {
     AudioSys.se('click');
     const candidates = state.inventory.filter(it => getSpec(it.specId).cat === catKey);
     const catLabel = PART_CATEGORIES.find(c => c.key === catKey).label;
+    const pc = state.pcs[selectedPcIdx];
 
     if (candidates.length === 0) {
       showModal(`${catLabel}の在庫がありません`, `手持ちに${catLabel}がありません。「通販」タブからフリマやPCショップで購入してください。`, [{ label: '閉じる' }]);
@@ -1679,20 +2102,23 @@ const App = (() => {
 
     const listHtml = candidates.map(it => {
       const sp = getSpec(it.specId);
-      const extra = sp.socket ? `[${sp.socket}]` : sp.ramType ? `[${sp.ramType}]` : sp.supply ? `[${sp.supply}W]` : '';
+      const comp = analyzeCandidatePart(sp, it.condition || 'used', pc);
       const durText = sp.cat === 'os' ? 'OSソフト' : (it.dur <= 0 ? '💥破損(0)' : `耐久 ${it.dur}/${it.maxDur}`);
       return `
-        <div class="p-2 mb-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-between gap-2">
-          <div class="min-w-0">
-            <div class="text-xs font-black text-white truncate">${sp.name} ${extra}</div>
-            <div class="text-[10px] text-slate-300">ベンチ+${sp.bench} ・ ${durText}</div>
+        <div class="p-2 mb-2 rounded-xl bg-slate-800 border ${comp.hasWarning ? 'border-rose-500/80' : 'border-slate-700'}">
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <div class="text-xs font-black text-white truncate">${sp.name}</div>
+              <div class="text-[10px] text-slate-300">ベンチ+${sp.bench.toLocaleString()} ・ ${durText}</div>
+            </div>
+            <button type="button" onclick="App.equipPart(${it.uid})" class="px-2.5 py-1 rounded-lg bg-sky-500 text-slate-950 font-black text-[11px] shrink-0">装着</button>
           </div>
-          <button type="button" onclick="App.equipPart(${it.uid})" class="px-2.5 py-1 rounded-lg bg-sky-500 text-slate-950 font-black text-[11px] shrink-0">装着</button>
+          ${renderPartComparisonBlock(sp, it.condition || 'used', it.dur / Math.max(1, it.maxDur), pc)}
         </div>
       `;
     }).join('');
 
-    showModal(`${catLabel}を選択して装着`, listHtml, [{ label: '閉じる' }]);
+    showModal(`${pc.name} に${catLabel}を装着（比較表示）`, listHtml, [{ label: '閉じる' }]);
   }
 
   function equipPart(uid) {
@@ -1810,6 +2236,7 @@ const App = (() => {
   function renderShopTab() {
     const shop = SHOPS.find(s => s.id === selectedShopId) || SHOPS[0];
     const mkt = state.market[shop.id] || { hasSale: false, items: [] };
+    const refPc = getComparePC();
 
     const shopBtns = SHOPS.map(s => {
       const active = s.id === shop.id;
@@ -1837,34 +2264,38 @@ const App = (() => {
         const canAfford = state.money >= finalPrice;
 
         const firstSpec = getSpec(item.parts[0].specId);
-        const subDesc = item.kind === 'part'
-          ? (firstSpec.cat === 'os'
-              ? '新品OSライセンス'
-              : `${item.parts[0].condition === 'new' ? '新品' : item.parts[0].condition === 'junk' ? '💥ジャンク/破損の可能性大' : `中古(耐久約${Math.round(item.parts[0].durRatio * 100)}%)`} ・ ベンチ+${firstSpec.bench}`)
-          : `${item.parts.length}点構成 (${item.kind === 'incomplete_pc' ? 'パーツ一部欠品' : 'セット/完成品'})`;
+        const isBundleOrPc = item.kind !== 'part' || item.parts.length > 1;
+        const detailHtml = !isBundleOrPc
+          ? renderPartComparisonBlock(firstSpec, item.parts[0].condition, item.parts[0].durRatio, refPc)
+          : renderBundleBreakdownHtml(item.parts, refPc);
+
+        const hasAnyWarn = item.parts.some(p => analyzeCandidatePart(getSpec(p.specId), p.condition || 'used', refPc).hasWarning);
 
         return `
-          <div class="p-2 rounded-xl bg-slate-800/95 border ${item.isSale ? 'border-amber-400/80' : 'border-slate-700'} flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2 min-w-0">
-              ${svgPartIcon(firstSpec.cat, firstSpec.tier, item.parts[0].condition === 'junk', 36)}
-              <div class="min-w-0">
-                <div class="flex items-center gap-1">
-                  ${item.isSale ? '<span class="px-1 rounded bg-rose-600 text-white text-[9px] font-black">SALE</span>' : ''}
-                  ${discountRate > 0 ? `<span class="px-1 rounded bg-emerald-500 text-slate-950 text-[9px] font-black">リピート${Math.round(discountRate * 100)}%OFF</span>` : ''}
-                  <span class="text-xs font-black text-white truncate">${item.title}</span>
+          <div class="p-2.5 rounded-xl bg-slate-800/95 border ${hasAnyWarn ? 'border-rose-500/70' : item.isSale ? 'border-amber-400/80' : 'border-slate-700'} flex flex-col gap-1">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                ${svgPartIcon(firstSpec.cat, firstSpec.tier, item.parts[0].condition === 'junk', 36)}
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1 flex-wrap">
+                    ${item.isSale ? '<span class="px-1 rounded bg-rose-600 text-white text-[9px] font-black">SALE</span>' : ''}
+                    ${discountRate > 0 ? `<span class="px-1 rounded bg-emerald-500 text-slate-950 text-[9px] font-black">リピート${Math.round(discountRate * 100)}%OFF</span>` : ''}
+                    ${hasAnyWarn ? '<span class="px-1 rounded bg-rose-500 text-white text-[9px] font-black">⚠要注意あり</span>' : ''}
+                    <span class="text-xs font-black text-white">${item.title}</span>
+                  </div>
+                  ${shop.type === 'flea' ? `<div class="text-[9px] text-slate-400">出品者: ${item.seller}</div>` : ''}
                 </div>
-                <div class="text-[10px] text-slate-300 truncate">${subDesc}</div>
-                ${shop.type === 'flea' ? `<div class="text-[9px] text-slate-400">出品者: ${item.seller}</div>` : ''}
               </div>
+              <button type="button" onclick="App.buyMarketItem('${shop.id}', '${item.id}')" ${canAfford ? '' : 'disabled'} class="px-2.5 py-1.5 rounded-xl text-[11px] font-black shrink-0 ${canAfford ? 'bg-amber-400 hover:bg-amber-300 text-slate-950' : 'bg-slate-700 text-slate-500'}">
+                ¥${finalPrice.toLocaleString()}
+              </button>
             </div>
-            <button type="button" onclick="App.buyMarketItem('${shop.id}', '${item.id}')" ${canAfford ? '' : 'disabled'} class="px-2.5 py-1.5 rounded-xl text-[11px] font-black shrink-0 ${canAfford ? 'bg-amber-400 hover:bg-amber-300 text-slate-950' : 'bg-slate-700 text-slate-500'}">
-              ¥${finalPrice.toLocaleString()}
-            </button>
+            ${detailHtml}
           </div>
         `;
       }).join('');
 
-      bodyHtml = `<div class="flex flex-col gap-1.5">${itemsHtml}</div>`;
+      bodyHtml = `<div class="flex flex-col gap-2">${itemsHtml}</div>`;
     }
 
     const main = document.getElementById('main-view');
@@ -1873,6 +2304,8 @@ const App = (() => {
         <div class="flex items-center gap-1 overflow-x-auto pb-0.5 shrink-0">
           ${shopBtns}
         </div>
+
+        ${renderComparePcBar('比較対象の所持PC')}
 
         <div class="p-2.5 rounded-2xl bg-gradient-to-r ${shop.color} text-white shadow shrink-0">
           <div class="flex items-center justify-between">
@@ -1919,6 +2352,7 @@ const App = (() => {
 
   function renderBtoConfigurator() {
     const avail = CATALOG.filter(s => s.year <= state.year);
+    const refPc = getComparePC();
     let totalCost = 0;
     let totalBench = 0;
     let totalWatt = 0;
@@ -1934,13 +2368,28 @@ const App = (() => {
       totalWatt += (sp.watt || 0);
       if (cat.key === 'psu') supplyWatt = sp.supply || 0;
 
+      const comp = analyzeCandidatePart(sp, 'new', refPc);
+      const diffBadge = comp.deltaVerdict === 'UPGRADE'
+        ? '<span class="text-emerald-300 font-black">▲強化</span>'
+        : comp.deltaVerdict === 'DOWNGRADE'
+        ? '<span class="text-amber-300 font-black">▼低下</span>'
+        : comp.deltaVerdict === 'SIDEGRADE'
+        ? '<span class="text-slate-300 font-black">＝同等</span>'
+        : '<span class="text-sky-300 font-black">+新規</span>';
+
       const optHtml = options.map(o => `<option value="${o.id}" ${o.id === chosenId ? 'selected' : ''}>${o.name} (¥${o.price.toLocaleString()})</option>`).join('');
       return `
-        <div class="flex items-center justify-between gap-2 bg-slate-800/90 p-1.5 rounded-lg border border-slate-700 text-[11px]">
-          <span class="font-bold text-slate-300 w-20 shrink-0">${cat.label}</span>
-          <select onchange="App.updateBtoPart('${cat.key}', this.value)" class="flex-1 bg-slate-950 text-white border border-slate-600 rounded px-1.5 py-1 text-[11px] font-bold">
-            ${optHtml}
-          </select>
+        <div class="bg-slate-800/90 p-1.5 rounded-lg border ${comp.hasWarning ? 'border-rose-500/80' : 'border-slate-700'} text-[11px]">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-bold text-slate-300 w-20 shrink-0">${cat.label}</span>
+            <select onchange="App.updateBtoPart('${cat.key}', this.value)" class="flex-1 bg-slate-950 text-white border border-slate-600 rounded px-1.5 py-1 text-[11px] font-bold">
+              ${optHtml}
+            </select>
+          </div>
+          <div class="mt-1 flex items-center justify-between text-[10px] px-0.5">
+            <span>${diffBadge} (ベンチ+${sp.bench.toLocaleString()})</span>
+            ${comp.hasWarning ? `<span class="text-rose-300 font-black truncate max-w-[190px]">⚠ ${comp.warnings[0]}</span>` : ''}
+          </div>
         </div>
       `;
     }).join('');
@@ -2051,17 +2500,25 @@ const App = (() => {
 
   /* ---------------------- TAB 4: FLEA MARKET LISTING ---------------------- */
   function renderFleaTab() {
+    const refPc = getComparePC();
     const invCheckboxes = state.inventory.map(it => {
       const sp = getSpec(it.specId);
       const checked = fleaDraft.selectedUids.includes(it.uid);
+      const comp = analyzeCandidatePart(sp, it.condition || 'used', refPc);
       const durTxt = sp.cat === 'os' ? 'OS' : (it.dur <= 0 ? '💥破損(0)' : `耐久${it.dur}/${it.maxDur}`);
+      const badge = comp.deltaVerdict === 'UPGRADE' ? '▲強化' : comp.deltaVerdict === 'DOWNGRADE' ? '▼低下' : comp.deltaVerdict === 'SIDEGRADE' ? '＝同等' : '+新規';
       return `
         <button type="button" onclick="App.toggleFleaSelect(${it.uid})" class="w-full text-left p-2 rounded-xl border text-xs flex items-center justify-between ${checked ? 'bg-sky-900/60 border-sky-400 text-white' : 'bg-slate-800/80 border-slate-700 text-slate-300'}">
-          <span class="truncate pr-2">${checked ? '☑' : '☐'} ${sp.name} (${durTxt})</span>
+          <span class="truncate pr-2">${checked ? '☑' : '☐'} ${sp.name} (${durTxt}) <span class="text-[10px] text-sky-300">[${badge}]</span></span>
           <span class="text-[10px] text-slate-400 shrink-0">参考¥${Math.round(sp.price * (it.dur <= 0 ? 0.15 : 0.5)).toLocaleString()}</span>
         </button>
       `;
     }).join('');
+
+    const selectedPartsForPreview = fleaDraft.selectedUids
+      .map(uid => state.inventory.find(x => x.uid === uid))
+      .filter(Boolean)
+      .map(it => ({ specId: it.specId, condition: it.condition || 'used', durRatio: it.dur / Math.max(1, it.maxDur) }));
 
     const pcPackButtons = state.pcs.filter(p => Object.keys(p.parts).length > 0).map((pc, idx) => `
       <button type="button" onclick="App.packPcForListing(${idx})" class="px-2 py-1 rounded-lg bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-500/50 text-[10px] font-bold text-indigo-200">
@@ -2084,6 +2541,8 @@ const App = (() => {
     const main = document.getElementById('main-view');
     main.innerHTML = `
       <div class="flex-1 flex flex-col justify-between p-3 gap-2 overflow-y-auto text-slate-100">
+        ${renderComparePcBar('比較対象の所持PC')}
+
         <div class="bg-slate-900/95 border border-slate-700 rounded-2xl p-2.5">
           <div class="text-xs font-black text-amber-300 mb-1">📦 フリマサイトへ出品する（パーツ・セット・PC・破損品OK）</div>
           <p class="text-[10px] text-slate-300 mb-2">複数選択して「パーツセット」や「未完成PC」として出品可能。週を進めると売れます（高すぎると売れません）。</p>
@@ -2094,7 +2553,9 @@ const App = (() => {
             ${invCheckboxes || '<div class="text-[11px] text-slate-500 py-2 text-center">出品できる手持ちパーツがありません</div>'}
           </div>
 
-          <div class="grid grid-cols-2 gap-1.5 mb-2 text-xs">
+          ${selectedPartsForPreview.length > 0 ? renderBundleBreakdownHtml(selectedPartsForPreview, refPc) : ''}
+
+          <div class="grid grid-cols-2 gap-1.5 my-2 text-xs">
             <div>
               <label class="text-[10px] text-slate-400 block">出品先フリマ</label>
               <select id="flea-target-shop" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-2 py-1 text-xs font-bold">
@@ -2564,6 +3025,7 @@ const App = (() => {
     startNewGame,
     continueGame,
     confirmDeleteSave,
+    setComparePcIdx,
     setTab,
     nextAdv,
     skipAdv,
