@@ -87,10 +87,18 @@
     0%, 100% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.35); }
     50% { box-shadow: 0 0 22px rgba(250, 204, 21, 0.75); }
   }
+  @keyframes shakeImpact {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    20% { transform: translate(-4px, 2px) rotate(-0.8deg); }
+    40% { transform: translate(4px, -2px) rotate(0.8deg); }
+    60% { transform: translate(-3px, -1px) rotate(-0.4deg); }
+    80% { transform: translate(3px, 1px) rotate(0.4deg); }
+  }
 
   .anim-idle { animation: floatIdle 3s ease-in-out infinite; }
   .anim-pop { animation: popIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
   .anim-arena { animation: sparkPulse 1.6s ease-in-out infinite; }
+  .anim-shake { animation: shakeImpact 0.26s ease-in-out; }
 
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.35); border-radius: 4px; }
@@ -144,7 +152,7 @@
   <div id="modal-backdrop" class="hidden absolute inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="w-full max-w-xs bg-slate-900 border-2 border-sky-400/70 rounded-2xl p-4 shadow-2xl anim-pop text-slate-100">
       <h3 id="modal-title" class="text-sm font-black text-sky-300 mb-1.5">確認</h3>
-      <div id="modal-content" class="text-xs leading-relaxed text-slate-200 mb-4 max-h-60 overflow-y-auto"></div>
+      <div id="modal-content" class="text-xs leading-relaxed text-slate-200 mb-4 max-h-64 overflow-y-auto"></div>
       <div id="modal-buttons" class="flex flex-wrap gap-2 justify-end"></div>
     </div>
   </div>
@@ -152,7 +160,7 @@
 
 <script>
 /* ============================================================================
-   1. PROCEDURAL WEB AUDIO ENGINE (BGM & SOUND EFFECTS)
+   1. WEB AUDIO SYNTHESIZER (BGM & SOUND EFFECTS)
 ============================================================================ */
 const AudioSys = (() => {
   let ctx = null;
@@ -161,48 +169,60 @@ const AudioSys = (() => {
   let activeTrack = null;
   let step = 0;
 
-  function init() {
-    try {
-      if (!ctx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (AC) ctx = new AC();
-      }
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume();
-      }
-    } catch (e) {
-      // Fallback when audio context cannot start yet
-    }
-  }
-
-  function tone(freq, dur, type = 'sine', vol = 0.06, delay = 0) {
-    if (muted) return;
-    init();
-    if (!ctx) return;
-    try {
-      const t = ctx.currentTime + delay;
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, t);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      osc.connect(g);
-      g.connect(ctx.destination);
-      osc.start(t);
-      osc.stop(t + dur + 0.02);
-    } catch (e) {
-      // Ignore transient oscillator errors
-    }
-  }
-
   const tracks = {
-    room:  { ms: 260, type: 'triangle', seq: [261.6, 329.6, 392.0, 493.9, 392.0, 329.6, 293.7, 392.0] },
-    adv:   { ms: 330, type: 'sine',     seq: [349.2, 440.0, 523.3, 440.0, 329.6, 392.0, 493.9, 392.0] },
-    shop:  { ms: 210, type: 'triangle', seq: [392.0, 440.0, 493.9, 523.3, 587.3, 523.3, 493.9, 440.0] },
-    arena: { ms: 135, type: 'sawtooth', seq: [164.8, 196.0, 246.9, 164.8, 220.0, 261.6, 329.6, 246.9] }
+    room: {
+      ms: 260,
+      type: 'triangle',
+      seq: [261.63, 329.63, 392.00, 440.00, 392.00, 329.63, 293.66, 349.23]
+    },
+    shop: {
+      ms: 210,
+      type: 'square',
+      seq: [392.00, 493.88, 587.33, 493.88, 523.25, 659.25, 587.33, 440.00]
+    },
+    adv: {
+      ms: 320,
+      type: 'sine',
+      seq: [220.00, 277.18, 329.63, 369.99, 329.63, 277.18, 246.94, 293.66]
+    },
+    arena: {
+      ms: 145,
+      type: 'sawtooth',
+      seq: [196.00, 196.00, 261.63, 293.66, 311.13, 293.66, 261.63, 220.00]
+    }
   };
+
+  function init() {
+    if (!ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        ctx = new AudioCtx();
+      }
+    }
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+  }
+
+  function tone(freq, dur, type = 'sine', gainVal = 0.05, delay = 0) {
+    if (muted || !ctx || !freq || freq <= 0) return;
+    try {
+      const now = ctx.currentTime + delay;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, gainVal), now + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + Math.max(0.02, dur));
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + Math.max(0.03, dur + 0.02));
+    } catch (e) {
+      // Ignore audio scheduling issues if context is locked
+    }
+  }
 
   function playBgm(name) {
     if (activeTrack === name && bgmTimer) return;
@@ -214,7 +234,7 @@ const AudioSys = (() => {
     bgmTimer = setInterval(() => {
       if (muted) return;
       const f = tr.seq[step % tr.seq.length];
-      tone(f, (tr.ms / 1000) * 0.85, tr.type, name === 'arena' ? 0.032 : 0.042);
+      tone(f, (tr.ms / 1000) * 0.85, tr.type, name === 'arena' ? 0.028 : 0.036);
       step++;
     }, tr.ms);
   }
@@ -496,7 +516,7 @@ function svgAssembledPC(pc, size = 110) {
 }
 
 /* ============================================================================
-   4. HARDWARE CATALOG (2027 - 2037 GENERATIONAL PROGRESSION)
+   4. HARDWARE CATALOG (8 COMPONENTS + OS, 2027 - 2037 TIMELINE)
 ============================================================================ */
 const PART_CATEGORIES = [
   { key: 'cpu',    label: 'CPU' },
@@ -563,11 +583,11 @@ const CATALOG = [
   { id: 'ssd_5', cat: 'ssd', name: '光量子ホログラムSSD 8TB',  bench: 5200, watt: 15, price: 62000, dur: 275, year: 2034, tier: 5 },
 
   // --- PSU ---
-  { id: 'psu_1', cat: 'psu', name: '550W Bronze 電源',          supply: 550,  bench: 150,  watt: 0, price: 6200,  dur: 115, year: 2027, tier: 1 },
-  { id: 'psu_2', cat: 'psu', name: '750W Gold フルモジュラー',  supply: 750,  bench: 450,  watt: 0, price: 13500, dur: 135, year: 2027, tier: 2 },
-  { id: 'psu_3', cat: 'psu', name: '1000W Platinum ATX3.1',     supply: 1000, bench: 950,  watt: 0, price: 24000, dur: 175, year: 2027, tier: 3 },
+  { id: 'psu_1', cat: 'psu', name: '550W Bronze 電源',           supply: 550,  bench: 150,  watt: 0, price: 6200,  dur: 115, year: 2027, tier: 1 },
+  { id: 'psu_2', cat: 'psu', name: '750W Gold フルモジュラー',   supply: 750,  bench: 450,  watt: 0, price: 13500, dur: 135, year: 2027, tier: 2 },
+  { id: 'psu_3', cat: 'psu', name: '1000W Platinum ATX3.1',      supply: 1000, bench: 950,  watt: 0, price: 24000, dur: 175, year: 2027, tier: 3 },
   { id: 'psu_4', cat: 'psu', name: '1300W Titanium AI電源(2030)',supply: 1300, bench: 1800, watt: 0, price: 38000, dur: 230, year: 2030, tier: 4 },
-  { id: 'psu_5', cat: 'psu', name: '1600W 超伝導デジタル電源',  supply: 1600, bench: 2800, watt: 0, price: 56000, dur: 295, year: 2034, tier: 5 },
+  { id: 'psu_5', cat: 'psu', name: '1600W 超伝導デジタル電源',   supply: 1600, bench: 2800, watt: 0, price: 56000, dur: 295, year: 2034, tier: 5 },
 
   // --- PC CASE ---
   { id: 'cas_1', cat: 'case', name: 'シンプル黒ミニタワー',       protect: 0.04, bench: 100,  watt: 5,  price: 4800,  dur: 120, year: 2027, tier: 1 },
@@ -627,25 +647,29 @@ const RANKS = [
 ];
 
 /* ============================================================================
-   6. 7 ONLINE SHOPS & MARKETPLACES CONFIGURATION
+   6. 7 ONLINE SHOPS & MARKETPLACES CONFIGURATION (DISTINCT ROLES & THEMES)
 ============================================================================ */
 const SHOPS = [
-  { id: 'flea1', type: 'flea', name: 'フリマ「メルパソ」', tag: 'フリマ①', desc: '出品数最多！掘り出し物からジャンクまで何でも揃う', color: 'from-rose-500 to-red-600' },
-  { id: 'flea2', type: 'flea', name: 'フリマ「オクパソ」', tag: 'フリマ②', desc: 'マニア向けパーツセットや自作PCの出品が豊富', color: 'from-amber-500 to-orange-600' },
-  { id: 'flea3', type: 'flea', name: 'フリマ「フリパソ」', tag: 'フリマ③', desc: 'まとめ買い割引が狙い目の穴場フリマアプリ', color: 'from-pink-500 to-fuchsia-600' },
-  { id: 'used1', type: 'used', name: '中古PC通販「中古工房」', tag: '中古通販', desc: '中古PC・中古パーツ専門。たまにタイムセール開催！', color: 'from-teal-500 to-emerald-600' },
-  { id: 'new1',  type: 'new',  name: 'PC通販「電脳堂」', tag: '新品①', desc: '最新パーツ＆OSが充実！BTOカスタム注文も可能', color: 'from-sky-500 to-blue-600' },
-  { id: 'new2',  type: 'new',  name: 'PC通販「パソパラ」', tag: '新品②', desc: 'ゲーミングBTOと高耐久パーツに強い老舗通販', color: 'from-indigo-500 to-violet-600' },
-  { id: 'new3',  type: 'new',  name: 'PC通販「PCベース」', tag: '新品③', desc: 'コスパ重視の新品パーツ＆週末セールが魅力', color: 'from-cyan-500 to-teal-600' }
+  { id: 'flea1', type: 'flea', persona: 'odd_starter', name: 'フリマA・ジャンク＆個人出品', tag: 'フリマA', desc: '個人出品の格安入門機・偏った構成・ワケあり品が集まるフリマ', color: 'from-rose-500 to-red-600' },
+  { id: 'flea2', type: 'flea', persona: 'bundle_lot',  name: 'フリマB・パーツ漁り＆まとめ売り', tag: 'フリマB', desc: '複数パーツのまとめセットや組み替え途中機が多いフリマ', color: 'from-amber-500 to-orange-600' },
+  { id: 'flea3', type: 'flea', persona: 'enthusiast',  name: 'フリマC・ガチ勢＆掘り出し物', tag: 'フリマC', desc: '高出力・高冷却・高耐久など尖った改造機やレアパーツが出るフリマ', color: 'from-fuchsia-600 to-purple-700' },
+  { id: 'used1', type: 'used', persona: 'refurb_lab',  name: '中古PC通販・リユース工房', tag: '中古通販', desc: '事務・省スペース・ゲーミング・クリエイター向け整備済中古PC＆中古パーツ', color: 'from-teal-500 to-emerald-600' },
+  { id: 'new1',  type: 'new',  persona: 'cospa_bto',   name: 'PC通販1・コスパ＆BTOファクトリー', tag: '新品1', desc: '価格対性能とバランス重視の新品PC・パーツ・OS・BTO', color: 'from-sky-500 to-blue-600' },
+  { id: 'new2',  type: 'new',  persona: 'ai_lab',      name: 'PC通販2・ハイエンド＆AIラボ', tag: '新品2', desc: '高ベンチマーク・GPU/メモリ重視のAI演算向け新品PC＆BTO', color: 'from-indigo-600 to-violet-700' },
+  { id: 'new3',  type: 'new',  persona: 'tough_quiet', name: 'PC通販3・タフネス＆静音カスタム', tag: '新品3', desc: '高耐久パーツ・大型冷却・余裕電源・静音重視の新品PC＆BTO', color: 'from-cyan-600 to-teal-700' }
 ];
 
-const SELLERS = ['あきば工房', 'ジャンク王タカシ', 'パーツ沼の民', '白PCビルダー', '格安放出マン', '電脳リサイクル'];
+const SELLERS_BY_PERSONA = {
+  odd_starter: ['引っ越し処分おじさん', '倉庫整理のタロウ', '入門機コレクター', 'ジャンク好き次郎系', '部屋片付け中'],
+  bundle_lot:  ['まとめて放出マン', '組替途中のケンジ', 'パーツ箱の主', 'セット売り専門', '倉庫のパーツ山'],
+  enthusiast:  ['限界OCのミツル', '水冷マニアK', '高耐久信者', 'VRAM全振り職人', '深夜の改造屋']
+};
 
 /* ============================================================================
    7. MAIN APPLICATION STATE & GAME LOGIC
 ============================================================================ */
 const App = (() => {
-  const SAVE_KEY = 'pasokon_battle_save_v4';
+  const SAVE_KEY = 'pasokon_battle_save_v5';
 
   let state = null;
   let currentTab = 'home';
@@ -701,6 +725,12 @@ const App = (() => {
     if (!state) return;
     state.logs.unshift(`[${state.year}/${state.month}月${state.week}週] ${msg}`);
     if (state.logs.length > 25) state.logs.pop();
+  }
+
+  function getComparePC() {
+    if (!state || !Array.isArray(state.pcs) || state.pcs.length === 0) return null;
+    if (!state.pcs[comparePcIdx]) comparePcIdx = 0;
+    return state.pcs[comparePcIdx];
   }
 
   /* ---------------------- SAVE / LOAD / DELETE ---------------------- */
@@ -1230,11 +1260,131 @@ const App = (() => {
     }));
   }
 
-  /* ---------------------- COMPARISON & COMPATIBILITY ASSIST ---------------------- */
-  function getComparePC() {
-    if (!state || !Array.isArray(state.pcs) || state.pcs.length === 0) return null;
-    if (comparePcIdx < 0 || comparePcIdx >= state.pcs.length) comparePcIdx = 0;
-    return state.pcs[comparePcIdx];
+  /* ==========================================================================
+     STORE-SPECIFIC NON-DUPLICATE BUILD & BENCHMARK GENERATOR
+  ========================================================================== */
+  function pickByRank(list, rankRatio = 0.5) {
+    if (!list || list.length === 0) return null;
+    const idx = Math.min(list.length - 1, Math.max(0, Math.floor(rankRatio * list.length)));
+    return list[idx];
+  }
+
+  function buildDistinctPreset(persona, profileKey, condition = 'used') {
+    const avail = CATALOG.filter(s => s.year <= state.year);
+    const byCat = (cat) => avail.filter(s => s.cat === cat).sort((a, b) => a.bench - b.bench || a.price - b.price);
+
+    const cpus = byCat('cpu');
+    const coolers = byCat('cooler');
+    const mobos = byCat('mobo');
+    const rams = byCat('ram');
+    const gpus = byCat('gpu');
+    const ssds = byCat('ssd');
+    const psus = byCat('psu').slice().sort((a, b) => (a.supply || 0) - (b.supply || 0) || a.bench - b.bench);
+    const cases = byCat('case');
+    const oss = byCat('os');
+
+    const jitter = () => (Math.random() - 0.5) * 0.14;
+    let cpu, mobo, ram, gpu, cooler, ssd, pcCase, os;
+
+    if (profileKey === 'cheap_starter') {
+      cpu = pickByRank(cpus, 0.0 + Math.random() * 0.18);
+      mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.0);
+      ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.0);
+      gpu = pickByRank(gpus, 0.0 + Math.random() * 0.15);
+      cooler = pickByRank(coolers, 0.0);
+      ssd = pickByRank(ssds, 0.0 + Math.random() * 0.2);
+      pcCase = pickByRank(cases, 0.0 + Math.random() * 0.2);
+      os = pickByRank(oss, 0.0);
+    } else if (profileKey === 'office_compact') {
+      cpu = pickByRank(cpus, 0.2 + jitter());
+      mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.2);
+      ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.25);
+      gpu = pickByRank(gpus, 0.05 + Math.random() * 0.15);
+      cooler = pickByRank(coolers, 0.15 + Math.random() * 0.25);
+      ssd = pickByRank(ssds, 0.35 + Math.random() * 0.3);
+      pcCase = pickByRank(cases, 0.1 + Math.random() * 0.25);
+      os = pickByRank(oss, 0.25);
+    } else if (profileKey === 'cospa_mid') {
+      cpu = pickByRank(cpus, 0.35 + jitter());
+      mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.35);
+      ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.4 + jitter());
+      gpu = pickByRank(gpus, 0.35 + jitter());
+      cooler = pickByRank(coolers, 0.25 + jitter());
+      ssd = pickByRank(ssds, 0.3 + jitter());
+      pcCase = pickByRank(cases, 0.25 + jitter());
+      os = pickByRank(oss, 0.2);
+    } else if (profileKey === 'ai_compute') {
+      cpu = pickByRank(cpus, 0.65 + jitter());
+      mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.6);
+      ram = rams.find(r => r.ramType === mobo.ramType && r.bench >= pickByRank(rams, 0.7).bench)
+        || pickByRank(rams, 0.85);
+      gpu = pickByRank(gpus, 0.8 + Math.random() * 0.2);
+      cooler = pickByRank(coolers, 0.4 + jitter());
+      ssd = pickByRank(ssds, 0.65 + jitter());
+      pcCase = pickByRank(cases, 0.35 + jitter());
+      os = pickByRank(oss, 0.65);
+    } else if (profileKey === 'tough_quiet') {
+      cpu = pickByRank(cpus, 0.5 + jitter());
+      mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.55);
+      ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.5);
+      gpu = pickByRank(gpus, 0.45 + jitter());
+      cooler = pickByRank(coolers, 0.8 + Math.random() * 0.2);
+      ssd = pickByRank(ssds, 0.5 + jitter());
+      pcCase = pickByRank(cases, 0.8 + Math.random() * 0.2);
+      os = pickByRank(oss, 0.5);
+    } else if (profileKey === 'odd_unbalanced') {
+      const flip = Math.random() < 0.5;
+      cpu = pickByRank(cpus, flip ? 0.1 + Math.random() * 0.2 : 0.55 + Math.random() * 0.25);
+      mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.2);
+      ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.15 + Math.random() * 0.45);
+      gpu = pickByRank(gpus, flip ? 0.5 + Math.random() * 0.3 : 0.05 + Math.random() * 0.2);
+      cooler = pickByRank(coolers, 0.0 + Math.random() * 0.45);
+      ssd = pickByRank(ssds, 0.1 + Math.random() * 0.5);
+      pcCase = pickByRank(cases, 0.0 + Math.random() * 0.5);
+      os = pickByRank(oss, Math.random() < 0.4 ? 0.0 : 0.35);
+    } else {
+      cpu = pickByRank(cpus, 0.72 + jitter());
+      mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.7);
+      ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.75 + jitter());
+      gpu = pickByRank(gpus, 0.7 + jitter());
+      cooler = pickByRank(coolers, 0.65 + jitter());
+      ssd = pickByRank(ssds, 0.65 + jitter());
+      pcCase = pickByRank(cases, 0.65 + jitter());
+      os = pickByRank(oss, 0.75);
+    }
+
+    const needWatt = cpu.watt + gpu.watt + mobo.watt + ram.watt + cooler.watt + ssd.watt + pcCase.watt;
+    const extraHeadroom = profileKey === 'tough_quiet' ? 220 : profileKey === 'ai_compute' ? 140 : 60;
+    const psu = psus.find(p => (p.supply || 0) >= needWatt + extraHeadroom)
+      || psus.find(p => (p.supply || 0) >= needWatt)
+      || psus[psus.length - 1];
+
+    const list = [cpu, cooler, mobo, ram, gpu, ssd, psu, pcCase, os];
+    return list.map(sp => {
+      let cond = condition;
+      let durRatio = 1;
+      if (sp.cat === 'os') {
+        cond = 'new';
+        durRatio = 1;
+      } else if (condition === 'used') {
+        if (persona === 'tough_quiet') {
+          durRatio = 0.82 + Math.random() * 0.16;
+        } else if (persona === 'odd_unbalanced') {
+          durRatio = 0.45 + Math.random() * 0.42;
+        } else {
+          durRatio = 0.62 + Math.random() * 0.28;
+        }
+      }
+      return { specId: sp.id, condition: cond, durRatio };
+    });
+  }
+
+  function estimateBuildBench(partsList) {
+    return partsList.reduce((sum, p) => {
+      const sp = getSpec(p.specId);
+      const broken = p.condition === 'junk' && (p.durRatio ?? 0) <= 0.05;
+      return sum + (broken ? 0 : sp.bench);
+    }, 0);
   }
 
   function setComparePcIdx(idx) {
@@ -1517,15 +1667,39 @@ const App = (() => {
     SHOPS.forEach(shop => {
       const items = [];
       const hasSale = (shop.type === 'used' || shop.type === 'new') && Math.random() < 0.45;
+      const seenSignatures = new Set();
+
+      const pushUniqueItem = (entry) => {
+        const sig = `${entry.kind}:${entry.parts.map(p => `${p.specId}@${p.condition}`).join(',')}`;
+        if (seenSignatures.has(sig) && items.length < 18) return false;
+        seenSignatures.add(sig);
+        items.push(entry);
+        return true;
+      };
 
       if (shop.type === 'new') {
-        availSpecs.forEach(spec => {
-          const fluct = 0.94 + Math.random() * 0.14;
-          const isSaleItem = hasSale && Math.random() < 0.25;
+        const orderedSpecs = availSpecs.slice().sort((a, b) => {
+          if (shop.persona === 'ai_lab') {
+            const wA = (a.cat === 'gpu' || a.cat === 'ram' || a.cat === 'cpu') ? a.bench * 1.4 : a.bench;
+            const wB = (b.cat === 'gpu' || b.cat === 'ram' || b.cat === 'cpu') ? b.bench * 1.4 : b.bench;
+            return wB - wA;
+          }
+          if (shop.persona === 'tough_quiet') {
+            const wA = (a.cat === 'cooler' || a.cat === 'case' || a.cat === 'psu') ? a.dur * 25 : a.dur * 5;
+            const wB = (b.cat === 'cooler' || b.cat === 'case' || b.cat === 'psu') ? b.dur * 25 : b.dur * 5;
+            return wB - wA;
+          }
+          return a.price - b.price;
+        });
+
+        orderedSpecs.forEach((spec, idx) => {
+          const personaMult = shop.persona === 'cospa_bto' ? 0.95 : shop.persona === 'ai_lab' ? 1.05 : 1.02;
+          const fluct = (0.94 + Math.random() * 0.12) * personaMult;
+          const isSaleItem = hasSale && idx % 4 === 0;
           const saleMult = isSaleItem ? 0.80 : 1.0;
           const price = Math.round((spec.price * fluct * saleMult) / 100) * 100;
-          items.push({
-            id: `${shop.id}_${spec.id}_${Math.random().toString(36).slice(2, 6)}`,
+          pushUniqueItem({
+            id: `${shop.id}_${spec.id}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
             kind: 'part',
             title: spec.name,
             parts: [{ specId: spec.id, condition: 'new', durRatio: 1 }],
@@ -1535,16 +1709,31 @@ const App = (() => {
           });
         });
 
-        [1, 2, 3].forEach(idx => {
-          const tierTarget = Math.min(5, idx + Math.floor((state.year - 2027) / 3));
-          const build = createAutoCompleteBuild(tierTarget, 'new');
+        const btoProfiles = shop.persona === 'cospa_bto'
+          ? [
+              { key: 'cheap_starter', label: '【新品BTO】コスパ入門モデル', priceMult: 0.98 },
+              { key: 'cospa_mid',     label: '【新品BTO】バランス万能機',   priceMult: 1.00 }
+            ]
+          : shop.persona === 'ai_lab'
+          ? [
+              { key: 'cospa_mid',     label: '【新品BTO】AIエントリー演算機', priceMult: 1.05 },
+              { key: 'ai_compute',    label: '【新品BTO】AIラボ極限演算機',   priceMult: 1.10 }
+            ]
+          : [
+              { key: 'office_compact', label: '【新品BTO】静音省電力モデル',    priceMult: 1.02 },
+              { key: 'tough_quiet',    label: '【新品BTO】タフネス重装甲モデル', priceMult: 1.08 }
+            ];
+
+        btoProfiles.slice().reverse().forEach((prof, idx) => {
+          const build = buildDistinctPreset(shop.persona, prof.key, 'new');
           const sumPrice = build.reduce((acc, b) => acc + getSpec(b.specId).price, 0);
-          const isSaleItem = hasSale && idx === 1;
-          const price = Math.round((sumPrice * (isSaleItem ? 0.85 : 1.04)) / 100) * 100;
+          const isSaleItem = hasSale && idx === 0;
+          const price = Math.round((sumPrice * prof.priceMult * (isSaleItem ? 0.85 : 1.03)) / 100) * 100;
+          const bScore = estimateBuildBench(build);
           items.unshift({
-            id: `${shop.id}_pc_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+            id: `${shop.id}_bto_${idx}_${Math.random().toString(36).slice(2, 6)}`,
             kind: 'pc',
-            title: `【新品BTO完成品】${shop.tag}モデル Lv.${tierTarget}`,
+            title: `${prof.label} [ベンチ${bScore.toLocaleString()}]`,
             parts: build,
             price,
             isSale: isSaleItem,
@@ -1552,12 +1741,37 @@ const App = (() => {
           });
         });
       } else if (shop.type === 'used') {
+        const usedPresets = [
+          { key: 'cheap_starter',  label: '【格安中古PC】事務＆Eランク練習機', priceRange: [14500, 19500] },
+          { key: 'odd_unbalanced', label: '【中古ワケありPC】偏りスペック機', priceRange: [21500, 28500] },
+          { key: 'office_compact', label: '【中古整備PC】静音オフィス＆入門', priceRange: [29000, 39500] },
+          { key: 'tough_quiet',    label: '【中古高耐久PC】頑丈冷却ワーク機', priceRange: [44000, 68000] }
+        ];
+
+        usedPresets.slice().reverse().forEach((preset, idx) => {
+          const build = buildDistinctPreset(shop.persona, preset.key, 'used');
+          const isSaleItem = hasSale && idx >= 2;
+          const [pMin, pMax] = preset.priceRange;
+          const rawP = pMin + Math.random() * (pMax - pMin);
+          const price = Math.round((rawP * (isSaleItem ? 0.82 : 1)) / 100) * 100;
+          const bScore = estimateBuildBench(build);
+          items.unshift({
+            id: `${shop.id}_upc_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+            kind: 'pc',
+            title: `${preset.label} [ベンチ${bScore.toLocaleString()}]`,
+            parts: build,
+            price,
+            isSale: isSaleItem,
+            seller: shop.name
+          });
+        });
+
         for (let i = 0; i < 16; i++) {
-          const spec = nonOsSpecs[Math.floor(Math.random() * nonOsSpecs.length)];
-          const durRatio = 0.50 + Math.random() * 0.40;
-          const isSaleItem = hasSale && Math.random() < 0.3;
-          const price = Math.round((spec.price * (0.44 + durRatio * 0.34) * (isSaleItem ? 0.78 : 1)) / 100) * 100;
-          items.push({
+          const spec = nonOsSpecs[(i + state.totalWeeks) % nonOsSpecs.length];
+          const durRatio = 0.52 + Math.random() * 0.38;
+          const isSaleItem = hasSale && i % 4 === 1;
+          const price = Math.round((spec.price * (0.45 + durRatio * 0.34) * (isSaleItem ? 0.78 : 1)) / 100) * 100;
+          pushUniqueItem({
             id: `${shop.id}_u_${i}_${Math.random().toString(36).slice(2, 6)}`,
             kind: 'part',
             title: `【中古】${spec.name}`,
@@ -1567,93 +1781,114 @@ const App = (() => {
             seller: shop.name
           });
         }
-
-        const usedPresets = [
-          { tier: 1, label: '【格安中古PC】入門事務＆Eランク練習機', priceRange: [15000, 21000] },
-          { tier: 1, label: '【中古再生PC】コスパ重視エントリー機', priceRange: [22000, 29000] },
-          { tier: 2, label: '【中古完成品】お手頃ゲーミング構成', priceRange: [30000, 38000] },
-          { tier: Math.min(4, 2 + Math.floor((state.year - 2027) / 2.5)), label: '【中古整備済PC】中堅バランスモデル', priceRange: [45000, 72000] }
-        ];
-        usedPresets.slice().reverse().forEach((preset, idx) => {
-          const build = createAutoCompleteBuild(preset.tier, 'used');
-          const isSaleItem = hasSale && idx >= 2;
-          const [pMin, pMax] = preset.priceRange;
-          const rawP = pMin + Math.random() * (pMax - pMin);
-          const price = Math.round((rawP * (isSaleItem ? 0.82 : 1)) / 100) * 100;
-          items.unshift({
-            id: `${shop.id}_upc_${idx}_${Math.random().toString(36).slice(2, 6)}`,
-            kind: 'pc',
-            title: preset.label,
-            parts: build,
-            price,
-            isSale: isSaleItem,
-            seller: shop.name
-          });
-        });
       } else if (shop.type === 'flea') {
-        const cheapPrebuiltTitles = [
-          '【格安中古PC】組済すぐ遊べる入門機',
-          '【中古完成品PC】低スペ格安・動作確認済',
-          '【組済中古PC】お手頃スタートモデル'
-        ];
-        for (let c = 0; c < 2; c++) {
-          const seller = SELLERS[Math.floor(Math.random() * SELLERS.length)];
-          const build = createAutoCompleteBuild(1, 'used');
-          const price = Math.round((15000 + Math.random() * 17000) / 500) * 500;
-          items.unshift({
-            id: `${shop.id}_fcheap_${c}_${Math.random().toString(36).slice(2, 6)}`,
-            kind: 'pc',
-            title: cheapPrebuiltTitles[(c + state.totalWeeks) % cheapPrebuiltTitles.length],
-            parts: build,
-            price,
-            seller
-          });
-        }
+        const roster = SELLERS_BY_PERSONA[shop.persona] || SELLERS_BY_PERSONA.odd_starter;
 
-        for (let i = 0; i < 12; i++) {
-          const seller = SELLERS[Math.floor(Math.random() * SELLERS.length)];
-          const roll = Math.random();
-          if (roll < 0.45) {
+        if (shop.persona === 'odd_starter') {
+          for (let c = 0; c < 3; c++) {
+            const seller = roster[c % roster.length];
+            const profKey = c === 2 ? 'odd_unbalanced' : 'cheap_starter';
+            const build = buildDistinctPreset(shop.persona, profKey, 'used');
+            const bScore = estimateBuildBench(build);
+            const price = Math.round((15000 + c * 5500 + Math.random() * 4000) / 500) * 500;
+            items.unshift({
+              id: `${shop.id}_f1pc_${c}_${Math.random().toString(36).slice(2, 6)}`,
+              kind: 'pc',
+              title: `${c === 2 ? '【個人改造PC】変則構成機' : '【格安中古PC】入門お助け機'} [ベンチ${bScore.toLocaleString()}]`,
+              parts: build,
+              price,
+              seller
+            });
+          }
+          for (let i = 0; i < 12; i++) {
+            const seller = roster[i % roster.length];
             const spec = nonOsSpecs[Math.floor(Math.random() * nonOsSpecs.length)];
-            const isJunk = Math.random() < 0.20;
-            const durRatio = isJunk ? 0 : (0.45 + Math.random() * 0.45);
-            const rawPrice = isJunk ? spec.price * 0.16 : spec.price * (0.38 + durRatio * 0.35);
-            items.push({
-              id: `${shop.id}_f_${i}_${Math.random().toString(36).slice(2, 6)}`,
+            const isJunk = i % 3 === 0 || Math.random() < 0.25;
+            const durRatio = isJunk ? 0 : (0.42 + Math.random() * 0.45);
+            const rawPrice = isJunk ? spec.price * 0.14 : spec.price * (0.35 + durRatio * 0.34);
+            pushUniqueItem({
+              id: `${shop.id}_f1p_${i}_${Math.random().toString(36).slice(2, 6)}`,
               kind: 'part',
-              title: `${isJunk ? '【ジャンク/現状品】' : '【中古】'}${spec.name}`,
+              title: `${isJunk ? '【ジャンク/現状品】' : '【個人出品】'}${spec.name}`,
               parts: [{ specId: spec.id, condition: isJunk ? 'junk' : 'used', durRatio }],
               price: Math.max(500, Math.round(rawPrice / 100) * 100),
               seller
             });
-          } else if (roll < 0.72) {
-            const tierTarget = Math.min(4, 1 + Math.floor((state.year - 2027) / 3));
-            const full = createAutoCompleteBuild(tierTarget, 'used');
-            const bundle = full.filter(x => ['cpu', 'mobo', 'ram'].includes(getSpec(x.specId).cat));
-            const base = bundle.reduce((a, b) => a + getSpec(b.specId).price * 0.46, 0);
-            items.push({
-              id: `${shop.id}_fb_${i}_${Math.random().toString(36).slice(2, 6)}`,
+          }
+        } else if (shop.persona === 'bundle_lot') {
+          for (let b = 0; b < 5; b++) {
+            const seller = roster[b % roster.length];
+            const sampleBuild = buildDistinctPreset(shop.persona, b % 2 === 0 ? 'cheap_starter' : 'cospa_mid', 'used');
+            const bundleCats = b % 2 === 0 ? ['cpu', 'mobo', 'ram'] : ['gpu', 'ram', 'ssd'];
+            const bundleParts = sampleBuild.filter(x => bundleCats.includes(getSpec(x.specId).cat));
+            const base = bundleParts.reduce((a, p) => a + getSpec(p.specId).price * 0.44, 0);
+            const bScore = estimateBuildBench(bundleParts);
+            items.unshift({
+              id: `${shop.id}_f2b_${b}_${Math.random().toString(36).slice(2, 6)}`,
               kind: 'bundle',
-              title: '【3点セット】CPU+マザボ+メモリお得組',
-              parts: bundle,
+              title: `【まとめ売${b + 1}】${bundleCats.map(k => PART_CATEGORIES.find(c => c.key === k).label).join('+')} [計${bScore.toLocaleString()}]`,
+              parts: bundleParts,
               price: Math.max(3000, Math.round(base / 100) * 100),
               seller
             });
-          } else {
-            const incomplete = Math.random() < 0.42;
-            const tierTarget = Math.min(4, 1 + Math.floor((state.year - 2027) / 3));
-            let build = createAutoCompleteBuild(tierTarget, 'used');
-            if (incomplete) {
-              const dropCats = Math.random() < 0.5 ? ['gpu', 'os'] : ['ssd', 'ram'];
-              build = build.filter(b => !dropCats.includes(getSpec(b.specId).cat));
-            }
-            const base = build.reduce((a, b) => a + getSpec(b.specId).price * 0.48, 0);
+          }
+          for (let k = 0; k < 2; k++) {
+            const seller = roster[k % roster.length];
+            let inc = buildDistinctPreset(shop.persona, 'cospa_mid', 'used');
+            const drop = k === 0 ? ['gpu', 'os'] : ['ssd'];
+            inc = inc.filter(x => !drop.includes(getSpec(x.specId).cat));
+            const bScore = estimateBuildBench(inc);
+            const base = inc.reduce((a, p) => a + getSpec(p.specId).price * 0.46, 0);
             items.push({
-              id: `${shop.id}_fpc_${i}_${Math.random().toString(36).slice(2, 6)}`,
-              kind: incomplete ? 'incomplete_pc' : 'pc',
-              title: incomplete ? '【パーツ欠品PC】ベース機(要追加パーツ)' : '【中古自作PC】即戦力ゲーミング構成',
+              id: `${shop.id}_f2inc_${k}_${Math.random().toString(36).slice(2, 6)}`,
+              kind: 'incomplete_pc',
+              title: `【組替途中PC】${k === 0 ? 'グラボ・OS欠品' : 'SSD欠品'} [ベンチ${bScore.toLocaleString()}]`,
+              parts: inc,
+              price: Math.max(6000, Math.round(base / 100) * 100),
+              seller
+            });
+          }
+          for (let i = 0; i < 8; i++) {
+            const seller = roster[i % roster.length];
+            const spec = nonOsSpecs[Math.floor(Math.random() * nonOsSpecs.length)];
+            const durRatio = 0.5 + Math.random() * 0.38;
+            pushUniqueItem({
+              id: `${shop.id}_f2p_${i}_${Math.random().toString(36).slice(2, 6)}`,
+              kind: 'part',
+              title: `【漁り品】${spec.name}`,
+              parts: [{ specId: spec.id, condition: 'used', durRatio }],
+              price: Math.max(800, Math.round((spec.price * 0.5) / 100) * 100),
+              seller
+            });
+          }
+        } else {
+          for (let e = 0; e < 3; e++) {
+            const seller = roster[e % roster.length];
+            const profKey = e === 0 ? 'ai_compute' : e === 1 ? 'tough_quiet' : 'enthusiast_rig';
+            const build = buildDistinctPreset(shop.persona, profKey, 'used');
+            const bScore = estimateBuildBench(build);
+            const rawSum = build.reduce((a, p) => a + getSpec(p.specId).price * 0.65, 0);
+            items.unshift({
+              id: `${shop.id}_f3pc_${e}_${Math.random().toString(36).slice(2, 6)}`,
+              kind: 'pc',
+              title: `【ガチ勢放出】${e === 0 ? '爆演算特化機' : e === 1 ? '重装甲耐久機' : 'チューンド機'} [ベンチ${bScore.toLocaleString()}]`,
               parts: build,
-              price: Math.max(5000, Math.round(base / 100) * 100),
+              price: Math.max(25000, Math.round(rawSum / 500) * 500),
+              seller
+            });
+          }
+          const highSpecs = nonOsSpecs.slice().sort((a, b) => b.bench - a.bench).slice(0, Math.max(8, Math.ceil(nonOsSpecs.length * 0.65)));
+          for (let i = 0; i < 10; i++) {
+            const seller = roster[i % roster.length];
+            const spec = highSpecs[i % highSpecs.length];
+            const durRatio = 0.58 + Math.random() * 0.36;
+            const price = Math.round((spec.price * (0.52 + durRatio * 0.32)) / 100) * 100;
+            pushUniqueItem({
+              id: `${shop.id}_f3p_${i}_${Math.random().toString(36).slice(2, 6)}`,
+              kind: 'part',
+              title: `【掘り出し物】${spec.name}`,
+              parts: [{ specId: spec.id, condition: 'used', durRatio }],
+              price: Math.max(1500, price),
               seller
             });
           }
@@ -2559,9 +2794,9 @@ const App = (() => {
             <div>
               <label class="text-[10px] text-slate-400 block">出品先フリマ</label>
               <select id="flea-target-shop" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-2 py-1 text-xs font-bold">
-                <option value="flea1">メルパソ</option>
-                <option value="flea2">オクパソ</option>
-                <option value="flea3">フリパソ</option>
+                <option value="flea1">フリマA</option>
+                <option value="flea2">フリマB</option>
+                <option value="flea3">フリマC</option>
               </select>
             </div>
             <div>
@@ -2798,16 +3033,17 @@ const App = (() => {
     const battleLogs = [`🔥 ${rank.name} 開幕！全10台のAIがフルロード演算を開始！`];
     const physicalKeys = ['cpu', 'cooler', 'mobo', 'ram', 'gpu', 'ssd', 'psu', 'case'];
 
-    function renderArenaScreen(finished = false, finalPlacement = 10, prize = 0) {
+    function renderArenaScreen(finished = false, finalPlacement = 10, prize = 0, hitKey = null) {
       const partBars = physicalKeys.map(k => {
         const pt = pc.parts[k];
         const sp = getSpec(pt.specId);
         const pct = Math.max(0, Math.round((pt.dur / pt.maxDur) * 100));
         const barCol = pt.dur <= 0 ? 'bg-rose-600' : pct < 30 ? 'bg-amber-400' : 'bg-emerald-400';
+        const isHit = hitKey === k;
         return `
-          <div class="bg-slate-800/90 px-2 py-1 rounded-lg border ${pt.dur <= 0 ? 'border-rose-500' : 'border-slate-700'}">
+          <div class="bg-slate-800/90 px-2 py-1 rounded-lg border ${pt.dur <= 0 ? 'border-rose-500' : isHit ? 'border-amber-300 bg-amber-950/40' : 'border-slate-700'}">
             <div class="flex justify-between text-[10px] font-bold">
-              <span class="truncate">${sp.name}</span>
+              <span class="truncate">${isHit ? '⚡' : ''}${sp.name}</span>
               <span class="${pt.dur <= 0 ? 'text-rose-400 font-black' : 'text-slate-300'}">${pt.dur}/${pt.maxDur}</span>
             </div>
             <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden mt-0.5">
@@ -2827,7 +3063,7 @@ const App = (() => {
 
       const main = document.getElementById('main-view');
       main.innerHTML = `
-        <div class="flex-1 flex flex-col justify-between p-3 gap-2 bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-950 text-slate-100 overflow-y-auto">
+        <div class="flex-1 flex flex-col justify-between p-3 gap-2 bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-950 text-slate-100 overflow-y-auto ${hitKey ? 'anim-shake' : ''}">
           <div class="flex items-center justify-between bg-slate-900/90 border border-amber-400/50 rounded-2xl px-3 py-2 anim-arena">
             <div>
               <div class="text-xs font-black text-amber-300">${rank.name}</div>
@@ -2867,16 +3103,18 @@ const App = (() => {
       `;
     }
 
-    renderArenaScreen(false);
+    renderArenaScreen(false, 10, 0, null);
 
     arenaTimer = setInterval(() => {
       tickCount++;
       AudioSys.se('zap');
 
+      let lastHitKey = null;
       const jiroEntrant = entrants.find(e => e.isJiro);
       if (jiroEntrant.alive) {
         for (let hit = 0; hit < 2; hit++) {
           const k = physicalKeys[Math.floor(Math.random() * physicalKeys.length)];
+          lastHitKey = k;
           const pt = pc.parts[k];
           const rawDmg = rank.stress * (0.45 + Math.random() * 0.75);
           const finalDmg = Math.max(1, Math.round(rawDmg * (1 - mitigation)));
@@ -2928,9 +3166,9 @@ const App = (() => {
         } else {
           battleLogs.unshift(`📊 決着！次郎は第${placement}位（賞金 ¥${prize.toLocaleString()}）となった！`);
         }
-        renderArenaScreen(true, placement, prize);
+        renderArenaScreen(true, placement, prize, lastHitKey);
       } else {
-        renderArenaScreen(false);
+        renderArenaScreen(false, 10, 0, lastHitKey);
       }
     }, 340);
   }
