@@ -87,18 +87,10 @@
     0%, 100% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.35); }
     50% { box-shadow: 0 0 22px rgba(250, 204, 21, 0.75); }
   }
-  @keyframes shakeImpact {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    20% { transform: translate(-4px, 2px) rotate(-0.8deg); }
-    40% { transform: translate(4px, -2px) rotate(0.8deg); }
-    60% { transform: translate(-3px, -1px) rotate(-0.4deg); }
-    80% { transform: translate(3px, 1px) rotate(0.4deg); }
-  }
 
   .anim-idle { animation: floatIdle 3s ease-in-out infinite; }
   .anim-pop { animation: popIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
   .anim-arena { animation: sparkPulse 1.6s ease-in-out infinite; }
-  .anim-shake { animation: shakeImpact 0.26s ease-in-out; }
 
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.35); border-radius: 4px; }
@@ -152,7 +144,7 @@
   <div id="modal-backdrop" class="hidden absolute inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="w-full max-w-xs bg-slate-900 border-2 border-sky-400/70 rounded-2xl p-4 shadow-2xl anim-pop text-slate-100">
       <h3 id="modal-title" class="text-sm font-black text-sky-300 mb-1.5">確認</h3>
-      <div id="modal-content" class="text-xs leading-relaxed text-slate-200 mb-4 max-h-64 overflow-y-auto"></div>
+      <div id="modal-content" class="text-xs leading-relaxed text-slate-200 mb-4 max-h-60 overflow-y-auto"></div>
       <div id="modal-buttons" class="flex flex-wrap gap-2 justify-end"></div>
     </div>
   </div>
@@ -160,7 +152,7 @@
 
 <script>
 /* ============================================================================
-   1. WEB AUDIO SYNTHESIZER (BGM & SOUND EFFECTS)
+   1. WEB AUDIO BGM & SOUND EFFECT SYSTEM
 ============================================================================ */
 const AudioSys = (() => {
   let ctx = null;
@@ -171,41 +163,41 @@ const AudioSys = (() => {
 
   const tracks = {
     room: {
-      ms: 260,
+      ms: 340,
       type: 'triangle',
-      seq: [261.63, 329.63, 392.00, 440.00, 392.00, 329.63, 293.66, 349.23]
+      seq: [261.63, 329.63, 392.00, 329.63, 293.66, 349.23, 440.00, 349.23]
     },
     shop: {
-      ms: 210,
+      ms: 250,
       type: 'square',
-      seq: [392.00, 493.88, 587.33, 493.88, 523.25, 659.25, 587.33, 440.00]
-    },
-    adv: {
-      ms: 320,
-      type: 'sine',
-      seq: [220.00, 277.18, 329.63, 369.99, 329.63, 277.18, 246.94, 293.66]
+      seq: [392.00, 493.88, 587.33, 659.25, 587.33, 493.88, 440.00, 493.88]
     },
     arena: {
-      ms: 145,
+      ms: 155,
       type: 'sawtooth',
-      seq: [196.00, 196.00, 261.63, 293.66, 311.13, 293.66, 261.63, 220.00]
+      seq: [220.00, 277.18, 329.63, 440.00, 329.63, 277.18, 246.94, 369.99]
+    },
+    adv: {
+      ms: 420,
+      type: 'sine',
+      seq: [329.63, 392.00, 493.88, 440.00, 392.00, 329.63, 293.66, 329.63]
     }
   };
 
   function init() {
-    if (!ctx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
-        ctx = new AudioCtx();
+    try {
+      if (!ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) ctx = new AudioCtx();
       }
-    }
-    if (ctx && ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+    } catch (e) {}
   }
 
-  function tone(freq, dur, type = 'sine', gainVal = 0.05, delay = 0) {
-    if (muted || !ctx || !freq || freq <= 0) return;
+  function tone(freq, dur, type = 'sine', vol = 0.06, delay = 0) {
+    if (muted || !ctx || freq <= 0) return;
     try {
       const now = ctx.currentTime + delay;
       const osc = ctx.createOscillator();
@@ -213,15 +205,13 @@ const AudioSys = (() => {
       osc.type = type;
       osc.frequency.setValueAtTime(freq, now);
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, gainVal), now + 0.015);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), now + 0.015);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + Math.max(0.02, dur));
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(now);
       osc.stop(now + Math.max(0.03, dur + 0.02));
-    } catch (e) {
-      // Ignore audio scheduling issues if context is locked
-    }
+    } catch (e) {}
   }
 
   function playBgm(name) {
@@ -234,7 +224,7 @@ const AudioSys = (() => {
     bgmTimer = setInterval(() => {
       if (muted) return;
       const f = tr.seq[step % tr.seq.length];
-      tone(f, (tr.ms / 1000) * 0.85, tr.type, name === 'arena' ? 0.028 : 0.036);
+      tone(f, (tr.ms / 1000) * 0.85, tr.type, name === 'arena' ? 0.032 : 0.042);
       step++;
     }, tr.ms);
   }
@@ -342,7 +332,7 @@ const FX = (() => {
 })();
 
 /* ============================================================================
-   3. CUSTOM SVG ILLUSTRATIONS (JIRO + 8 PC COMPONENTS + OS + PC RIG)
+   3. CUSTOM SVG ILLUSTRATIONS
 ============================================================================ */
 function svgJiro(mood = 'normal', size = 120) {
   const happy = mood === 'happy';
@@ -367,10 +357,8 @@ function svgJiro(mood = 'normal', size = 120) {
         <stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#0369a1"/>
       </linearGradient>
     </defs>
-    <!-- Overweight / Chubby Jiro Body -->
     <path d="M 8 158 C 10 112, 38 106, 80 106 C 122 106, 150 112, 152 158 Z" fill="url(#jHoodie)" stroke="#020617" stroke-width="2.5"/>
     <path d="M 52 108 L 80 156 L 108 108 Z" fill="url(#jTee)"/>
-    <!-- Chubby Neck & Double Chin -->
     <rect x="60" y="94" width="40" height="24" rx="11" fill="#fed7aa"/>
     <circle cx="34" cy="76" r="9.5" fill="#fdba74" stroke="#9a3412" stroke-width="1.5"/>
     <circle cx="126" cy="76" r="9.5" fill="#fdba74" stroke="#9a3412" stroke-width="1.5"/>
@@ -378,10 +366,8 @@ function svgJiro(mood = 'normal', size = 120) {
     <path d="M 56 107 Q 80 118 104 107" fill="none" stroke="#ea580c" stroke-width="2.2" opacity="0.65"/>
     <ellipse cx="50" cy="84" rx="8.5" ry="5" fill="#fb7185" opacity="0.35"/>
     <ellipse cx="110" cy="84" rx="8.5" ry="5" fill="#fb7185" opacity="0.35"/>
-    <!-- Full Head of Black Hair (Not Bald) -->
     <path d="M 31 72 C 27 31, 51 15, 80 15 C 109 15, 133 31, 129 72 C 124 52, 113 43, 101 41 C 93 47, 83 46, 76 40 C 63 47, 44 47, 31 72 Z" fill="#1e293b" stroke="#020617" stroke-width="2.2"/>
     <path d="M 45 23 Q 70 10 99 18 Q 117 24 122 40" fill="none" stroke="#475569" stroke-width="2.5" stroke-linecap="round"/>
-    <!-- Eyebrows & Glasses -->
     <path d="M 51 ${60 + brow} Q 61 ${55 - brow} 71 ${60 + brow}" fill="none" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/>
     <path d="M 89 ${60 + brow} Q 99 ${55 - brow} 109 ${60 + brow}" fill="none" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/>
     <rect x="48" y="64" width="26" height="16" rx="4" fill="rgba(255,255,255,0.22)" stroke="#0f172a" stroke-width="2.4"/>
@@ -516,7 +502,14 @@ function svgAssembledPC(pc, size = 110) {
 }
 
 /* ============================================================================
-   4. HARDWARE CATALOG (8 COMPONENTS + OS, 2027 - 2037 TIMELINE)
+   4. HARDWARE CATALOG (2027 - 2035 GENERATIONAL PROGRESSION)
+   Socket & Memory compatibility:
+   - LGA1700 -> DDR5
+   - AM5     -> DDR5
+   - LGA1851 -> DDR5
+   - AM6     -> DDR6
+   - LGA1954 -> DDR6
+   - Q-SOC   -> DDR7
 ============================================================================ */
 const PART_CATEGORIES = [
   { key: 'cpu',    label: 'CPU' },
@@ -532,122 +525,142 @@ const PART_CATEGORIES = [
 
 const CATALOG = [
   // --- CPU ---
-  { id: 'cpu_1', cat: 'cpu', name: 'Core i5-14400F 中古世代', socket: 'LGA1700', bench: 2200, watt: 65,  price: 16000, dur: 110, year: 2027, tier: 1 },
-  { id: 'cpu_2', cat: 'cpu', name: 'Ryzen 5 7600',            socket: 'AM5',     bench: 3200, watt: 65,  price: 24000, dur: 120, year: 2027, tier: 2 },
-  { id: 'cpu_3', cat: 'cpu', name: 'Core Ultra 7 265K',       socket: 'LGA1851', bench: 5400, watt: 125, price: 46000, dur: 135, year: 2027, tier: 3 },
-  { id: 'cpu_4', cat: 'cpu', name: 'Ryzen 7 9800X3D',         socket: 'AM5',     bench: 6800, watt: 120, price: 64000, dur: 145, year: 2027, tier: 3 },
-  { id: 'cpu_5', cat: 'cpu', name: 'Ryzen 9 11950X (2029)',   socket: 'AM6',     bench: 11500,watt: 170, price: 88000, dur: 175, year: 2029, tier: 4 },
-  { id: 'cpu_6', cat: 'cpu', name: 'Core Nova 9 490K (2031)', socket: 'LGA1954', bench: 17500,watt: 190, price: 118000,dur: 210, year: 2031, tier: 4 },
-  { id: 'cpu_7', cat: 'cpu', name: 'Ryzen AI-X 13950X3D',     socket: 'AM6',     bench: 24000,watt: 180, price: 148000,dur: 250, year: 2033, tier: 5 },
-  { id: 'cpu_8', cat: 'cpu', name: 'QuantumCore Q9-2035',     socket: 'Q-SOC',   bench: 33000,watt: 210, price: 195000,dur: 300, year: 2035, tier: 5 },
+  { id: 'cpu_1', cat: 'cpu', name: 'Core i5-14400F 中古世代', socket: 'LGA1700', bench: 2400,  watt: 65,  price: 16000,  dur: 110, year: 2027, tier: 1 },
+  { id: 'cpu_2', cat: 'cpu', name: 'Ryzen 5 7600',            socket: 'AM5',     bench: 3800,  watt: 65,  price: 24000,  dur: 120, year: 2027, tier: 2 },
+  { id: 'cpu_3', cat: 'cpu', name: 'Core Ultra 7 265K',       socket: 'LGA1851', bench: 7200,  watt: 125, price: 46000,  dur: 135, year: 2027, tier: 3 },
+  { id: 'cpu_4', cat: 'cpu', name: 'Ryzen 9 9950X Pro (2027)',socket: 'AM5',     bench: 11800, watt: 170, price: 78000,  dur: 155, year: 2027, tier: 4 },
+  { id: 'cpu_5', cat: 'cpu', name: 'Ryzen 9 11950X (2029)',   socket: 'AM6',     bench: 16500, watt: 170, price: 96000,  dur: 185, year: 2029, tier: 4 },
+  { id: 'cpu_6', cat: 'cpu', name: 'Core Nova 9 490K (2031)', socket: 'LGA1954', bench: 23500, watt: 190, price: 128000, dur: 220, year: 2031, tier: 4 },
+  { id: 'cpu_7', cat: 'cpu', name: 'Ryzen AI-X 13950X3D',     socket: 'AM6',     bench: 32000, watt: 180, price: 158000, dur: 260, year: 2033, tier: 5 },
+  { id: 'cpu_8', cat: 'cpu', name: 'QuantumCore Q9-2035',     socket: 'Q-SOC',   bench: 44000, watt: 210, price: 205000, dur: 310, year: 2035, tier: 5 },
 
   // --- CPU COOLER ---
-  { id: 'col_1', cat: 'cooler', name: 'リテール空冷クーラー',        cool: 0.04, bench: 100,  watt: 5,  price: 2500,  dur: 100, year: 2027, tier: 1 },
-  { id: 'col_2', cat: 'cooler', name: 'サイドフロー大型空冷虎徹Z',   cool: 0.10, bench: 400,  watt: 8,  price: 5800,  dur: 125, year: 2027, tier: 2 },
-  { id: 'col_3', cat: 'cooler', name: '240mm簡易水冷 AuraCool',     cool: 0.17, bench: 900,  watt: 15, price: 13500, dur: 150, year: 2027, tier: 3 },
-  { id: 'col_4', cat: 'cooler', name: '360mm液晶簡易水冷 Frost360', cool: 0.24, bench: 1600, watt: 22, price: 26000, dur: 190, year: 2029, tier: 4 },
-  { id: 'col_5', cat: 'cooler', name: 'ペルチェハイブリッド冷却改',  cool: 0.30, bench: 2500, watt: 35, price: 42000, dur: 240, year: 2032, tier: 5 },
-  { id: 'col_6', cat: 'cooler', name: '極低温液体窒素循環ユニット',  cool: 0.36, bench: 3800, watt: 50, price: 68000, dur: 295, year: 2035, tier: 5 },
+  { id: 'col_1', cat: 'cooler', name: 'リテール空冷クーラー',        cool: 0.04, bench: 200,  watt: 5,  price: 2500,  dur: 100, year: 2027, tier: 1 },
+  { id: 'col_2', cat: 'cooler', name: 'サイドフロー大型空冷虎徹Z',   cool: 0.10, bench: 650,  watt: 8,  price: 5800,  dur: 125, year: 2027, tier: 2 },
+  { id: 'col_3', cat: 'cooler', name: '240mm簡易水冷 AuraCool',     cool: 0.17, bench: 1400, watt: 15, price: 13500, dur: 150, year: 2027, tier: 3 },
+  { id: 'col_4', cat: 'cooler', name: '360mm液晶簡易水冷 Frost360', cool: 0.24, bench: 2400, watt: 22, price: 26000, dur: 195, year: 2029, tier: 4 },
+  { id: 'col_5', cat: 'cooler', name: 'ペルチェハイブリッド冷却改',  cool: 0.30, bench: 3500, watt: 35, price: 42000, dur: 245, year: 2032, tier: 5 },
+  { id: 'col_6', cat: 'cooler', name: '極低温液体窒素循環ユニット',  cool: 0.36, bench: 4900, watt: 50, price: 68000, dur: 300, year: 2035, tier: 5 },
 
   // --- MOTHERBOARD ---
-  { id: 'mb_1', cat: 'mobo', name: 'H610M エントリーボード',     socket: 'LGA1700', ramType: 'DDR5', bench: 300,  watt: 25, price: 11000, dur: 110, year: 2027, tier: 1 },
-  { id: 'mb_2', cat: 'mobo', name: 'B650M Gaming WiFi',          socket: 'AM5',     ramType: 'DDR5', bench: 700,  watt: 30, price: 19000, dur: 125, year: 2027, tier: 2 },
-  { id: 'mb_3', cat: 'mobo', name: 'Z890 AORUS ELITE',           socket: 'LGA1851', ramType: 'DDR5', bench: 1300, watt: 40, price: 34000, dur: 150, year: 2027, tier: 3 },
-  { id: 'mb_4', cat: 'mobo', name: 'X970E Taichi Neural (2029)', socket: 'AM6',     ramType: 'DDR6', bench: 2400, watt: 45, price: 48000, dur: 185, year: 2029, tier: 4 },
-  { id: 'mb_5', cat: 'mobo', name: 'Z1190 ROG MAXIMUS (2031)',   socket: 'LGA1954', ramType: 'DDR6', bench: 3600, watt: 55, price: 65000, dur: 225, year: 2031, tier: 4 },
-  { id: 'mb_6', cat: 'mobo', name: 'Q990 Quantum Link (2035)',   socket: 'Q-SOC',   ramType: 'DDR7', bench: 5500, watt: 65, price: 89000, dur: 285, year: 2035, tier: 5 },
+  { id: 'mb_1', cat: 'mobo', name: 'H610M エントリーボード',     socket: 'LGA1700', ramType: 'DDR5', bench: 450,  watt: 25, price: 11000, dur: 110, year: 2027, tier: 1 },
+  { id: 'mb_2', cat: 'mobo', name: 'B650M Gaming WiFi',          socket: 'AM5',     ramType: 'DDR5', bench: 1100, watt: 30, price: 19000, dur: 125, year: 2027, tier: 2 },
+  { id: 'mb_3', cat: 'mobo', name: 'Z890 AORUS ELITE',           socket: 'LGA1851', ramType: 'DDR5', bench: 2200, watt: 40, price: 34000, dur: 155, year: 2027, tier: 3 },
+  { id: 'mb_4', cat: 'mobo', name: 'X970E Taichi Neural (2029)', socket: 'AM6',     ramType: 'DDR6', bench: 3600, watt: 45, price: 48000, dur: 190, year: 2029, tier: 4 },
+  { id: 'mb_5', cat: 'mobo', name: 'Z1190 ROG MAXIMUS (2031)',   socket: 'LGA1954', ramType: 'DDR6', bench: 5200, watt: 55, price: 65000, dur: 230, year: 2031, tier: 4 },
+  { id: 'mb_6', cat: 'mobo', name: 'Q990 Quantum Link (2035)',   socket: 'Q-SOC',   ramType: 'DDR7', bench: 7800, watt: 65, price: 89000, dur: 290, year: 2035, tier: 5 },
 
   // --- MEMORY ---
-  { id: 'ram_1', cat: 'ram', name: 'DDR5-4800 16GB (8GB×2)',   ramType: 'DDR5', bench: 400,  watt: 8,  price: 7500,  dur: 115, year: 2027, tier: 1 },
-  { id: 'ram_2', cat: 'ram', name: 'DDR5-6000 32GB RGB',       ramType: 'DDR5', bench: 1100, watt: 12, price: 15500, dur: 135, year: 2027, tier: 2 },
-  { id: 'ram_3', cat: 'ram', name: 'DDR5-7200 64GB OC',        ramType: 'DDR5', bench: 2100, watt: 16, price: 29000, dur: 165, year: 2027, tier: 3 },
-  { id: 'ram_4', cat: 'ram', name: 'DDR6-9600 64GB (2029)',    ramType: 'DDR6', bench: 3800, watt: 18, price: 42000, dur: 200, year: 2029, tier: 4 },
-  { id: 'ram_5', cat: 'ram', name: 'DDR6-12000 128GB (2032)',  ramType: 'DDR6', bench: 6000, watt: 24, price: 64000, dur: 245, year: 2032, tier: 5 },
-  { id: 'ram_6', cat: 'ram', name: 'DDR7-16000 256GB Optical', ramType: 'DDR7', bench: 9000, watt: 28, price: 92000, dur: 295, year: 2035, tier: 5 },
+  { id: 'ram_1', cat: 'ram', name: 'DDR5-4800 16GB (8GB×2)',   ramType: 'DDR5', bench: 650,  watt: 8,  price: 7500,  dur: 115, year: 2027, tier: 1 },
+  { id: 'ram_2', cat: 'ram', name: 'DDR5-6000 32GB RGB',       ramType: 'DDR5', bench: 1650, watt: 12, price: 15500, dur: 135, year: 2027, tier: 2 },
+  { id: 'ram_3', cat: 'ram', name: 'DDR5-8000 96GB AI-Kit',    ramType: 'DDR5', bench: 3600, watt: 16, price: 34000, dur: 170, year: 2027, tier: 3 },
+  { id: 'ram_4', cat: 'ram', name: 'DDR6-9600 64GB (2029)',    ramType: 'DDR6', bench: 5800, watt: 18, price: 42000, dur: 205, year: 2029, tier: 4 },
+  { id: 'ram_5', cat: 'ram', name: 'DDR6-12000 128GB (2032)',  ramType: 'DDR6', bench: 8800, watt: 24, price: 64000, dur: 250, year: 2032, tier: 5 },
+  { id: 'ram_6', cat: 'ram', name: 'DDR7-16000 256GB Optical', ramType: 'DDR7', bench: 12500,watt: 28, price: 92000, dur: 300, year: 2035, tier: 5 },
 
   // --- GPU ---
-  { id: 'gpu_1', cat: 'gpu', name: 'RTX 3060 12GB (定番中古)',    bench: 2400,  watt: 170, price: 26000,  dur: 110, year: 2027, tier: 1 },
-  { id: 'gpu_2', cat: 'gpu', name: 'RTX 4060 Ti 8GB',            bench: 4500,  watt: 160, price: 44000,  dur: 120, year: 2027, tier: 2 },
-  { id: 'gpu_3', cat: 'gpu', name: 'RTX 5070 12GB GDDR7',        bench: 8800,  watt: 250, price: 82000,  dur: 145, year: 2027, tier: 3 },
-  { id: 'gpu_4', cat: 'gpu', name: 'RTX 5080 16GB OC',           bench: 14500, watt: 360, price: 158000, dur: 175, year: 2027, tier: 4 },
-  { id: 'gpu_5', cat: 'gpu', name: 'RTX 6070 Ti 16GB (2029)',    bench: 21000, watt: 300, price: 135000, dur: 205, year: 2029, tier: 4 },
-  { id: 'gpu_6', cat: 'gpu', name: 'RTX 6090 32GB AI-Core',      bench: 32000, watt: 480, price: 285000, dur: 245, year: 2029, tier: 5 },
-  { id: 'gpu_7', cat: 'gpu', name: 'RTX 7080 24GB (2032)',       bench: 41000, watt: 380, price: 220000, dur: 270, year: 2032, tier: 5 },
-  { id: 'gpu_8', cat: 'gpu', name: 'NeuralTensor RTX-8090 48GB', bench: 56000, watt: 520, price: 380000, dur: 320, year: 2035, tier: 5 },
+  { id: 'gpu_1', cat: 'gpu', name: 'RTX 3060 12GB (定番中古)',    bench: 2800,  watt: 170, price: 26000,  dur: 110, year: 2027, tier: 1 },
+  { id: 'gpu_2', cat: 'gpu', name: 'RTX 4060 Ti 8GB',            bench: 6200,  watt: 160, price: 44000,  dur: 120, year: 2027, tier: 2 },
+  { id: 'gpu_3', cat: 'gpu', name: 'RTX 5070 12GB GDDR7',        bench: 12500, watt: 250, price: 82000,  dur: 145, year: 2027, tier: 3 },
+  { id: 'gpu_4', cat: 'gpu', name: 'RTX 5090 AI-Edition (2027)', bench: 24500, watt: 450, price: 215000, dur: 185, year: 2027, tier: 4 },
+  { id: 'gpu_5', cat: 'gpu', name: 'RTX 6070 Ti 16GB (2029)',    bench: 31000, watt: 300, price: 145000, dur: 210, year: 2029, tier: 4 },
+  { id: 'gpu_6', cat: 'gpu', name: 'RTX 6090 32GB AI-Core',      bench: 44000, watt: 480, price: 285000, dur: 250, year: 2029, tier: 5 },
+  { id: 'gpu_7', cat: 'gpu', name: 'RTX 7080 24GB (2032)',       bench: 56000, watt: 380, price: 225000, dur: 275, year: 2032, tier: 5 },
+  { id: 'gpu_8', cat: 'gpu', name: 'NeuralTensor RTX-8090 48GB', bench: 74000, watt: 520, price: 380000, dur: 325, year: 2035, tier: 5 },
 
   // --- STORAGE ---
-  { id: 'ssd_1', cat: 'ssd', name: 'NVMe Gen4 SSD 500GB',     bench: 300,  watt: 5,  price: 5500,  dur: 115, year: 2027, tier: 1 },
-  { id: 'ssd_2', cat: 'ssd', name: 'NVMe Gen4 高速SSD 1TB',   bench: 750,  watt: 7,  price: 11000, dur: 135, year: 2027, tier: 2 },
-  { id: 'ssd_3', cat: 'ssd', name: 'NVMe Gen5 爆速SSD 2TB',   bench: 1600, watt: 11, price: 24000, dur: 165, year: 2027, tier: 3 },
-  { id: 'ssd_4', cat: 'ssd', name: 'NVMe Gen6 4TB (2030)',    bench: 3000, watt: 13, price: 39000, dur: 210, year: 2030, tier: 4 },
-  { id: 'ssd_5', cat: 'ssd', name: '光量子ホログラムSSD 8TB',  bench: 5200, watt: 15, price: 62000, dur: 275, year: 2034, tier: 5 },
+  { id: 'ssd_1', cat: 'ssd', name: 'NVMe Gen4 SSD 500GB',     bench: 450,  watt: 5,  price: 5500,  dur: 115, year: 2027, tier: 1 },
+  { id: 'ssd_2', cat: 'ssd', name: 'NVMe Gen4 高速SSD 1TB',   bench: 1150, watt: 7,  price: 11000, dur: 135, year: 2027, tier: 2 },
+  { id: 'ssd_3', cat: 'ssd', name: 'NVMe Gen5 爆速SSD 2TB',   bench: 2400, watt: 11, price: 24000, dur: 170, year: 2027, tier: 3 },
+  { id: 'ssd_4', cat: 'ssd', name: 'NVMe Gen6 4TB (2030)',    bench: 4400, watt: 13, price: 39000, dur: 215, year: 2030, tier: 4 },
+  { id: 'ssd_5', cat: 'ssd', name: '光量子ホログラムSSD 8TB',  bench: 7200, watt: 15, price: 62000, dur: 280, year: 2034, tier: 5 },
 
   // --- PSU ---
-  { id: 'psu_1', cat: 'psu', name: '550W Bronze 電源',           supply: 550,  bench: 150,  watt: 0, price: 6200,  dur: 115, year: 2027, tier: 1 },
-  { id: 'psu_2', cat: 'psu', name: '750W Gold フルモジュラー',   supply: 750,  bench: 450,  watt: 0, price: 13500, dur: 135, year: 2027, tier: 2 },
-  { id: 'psu_3', cat: 'psu', name: '1000W Platinum ATX3.1',      supply: 1000, bench: 950,  watt: 0, price: 24000, dur: 175, year: 2027, tier: 3 },
-  { id: 'psu_4', cat: 'psu', name: '1300W Titanium AI電源(2030)',supply: 1300, bench: 1800, watt: 0, price: 38000, dur: 230, year: 2030, tier: 4 },
-  { id: 'psu_5', cat: 'psu', name: '1600W 超伝導デジタル電源',   supply: 1600, bench: 2800, watt: 0, price: 56000, dur: 295, year: 2034, tier: 5 },
+  { id: 'psu_1', cat: 'psu', name: '550W Bronze 電源',          supply: 550,  bench: 300,  watt: 0, price: 6200,  dur: 115, year: 2027, tier: 1 },
+  { id: 'psu_2', cat: 'psu', name: '750W Gold フルモジュラー',  supply: 750,  bench: 800,  watt: 0, price: 13500, dur: 135, year: 2027, tier: 2 },
+  { id: 'psu_3', cat: 'psu', name: '1200W Platinum ATX3.1',     supply: 1200, bench: 1800, watt: 0, price: 28000, dur: 180, year: 2027, tier: 3 },
+  { id: 'psu_4', cat: 'psu', name: '1300W Titanium AI電源(2030)',supply: 1300, bench: 2900, watt: 0, price: 38000, dur: 235, year: 2030, tier: 4 },
+  { id: 'psu_5', cat: 'psu', name: '1600W 超伝導デジタル電源',  supply: 1600, bench: 4200, watt: 0, price: 56000, dur: 300, year: 2034, tier: 5 },
 
   // --- PC CASE ---
-  { id: 'cas_1', cat: 'case', name: 'シンプル黒ミニタワー',       protect: 0.04, bench: 100,  watt: 5,  price: 4800,  dur: 120, year: 2027, tier: 1 },
-  { id: 'cas_2', cat: 'case', name: '白ピラーレスRGBケース',      protect: 0.08, bench: 500,  watt: 12, price: 9800,  dur: 145, year: 2027, tier: 2 },
-  { id: 'cas_3', cat: 'case', name: '高エアフローメッシュPro',    protect: 0.15, bench: 1100, watt: 15, price: 17500, dur: 180, year: 2027, tier: 3 },
-  { id: 'cas_4', cat: 'case', name: 'デュアルチャンバー防振装甲', protect: 0.22, bench: 2100, watt: 20, price: 29000, dur: 235, year: 2030, tier: 4 },
-  { id: 'cas_5', cat: 'case', name: 'カーボン電磁シールド筐体',   protect: 0.28, bench: 3400, watt: 25, price: 48000, dur: 295, year: 2034, tier: 5 },
+  { id: 'cas_1', cat: 'case', name: 'シンプル黒ミニタワー',       protect: 0.04, bench: 200,  watt: 5,  price: 4800,  dur: 120, year: 2027, tier: 1 },
+  { id: 'cas_2', cat: 'case', name: '白ピラーレスRGBケース',      protect: 0.08, bench: 800,  watt: 12, price: 9800,  dur: 145, year: 2027, tier: 2 },
+  { id: 'cas_3', cat: 'case', name: '高エアフローメッシュPro',    protect: 0.15, bench: 1900, watt: 15, price: 17500, dur: 185, year: 2027, tier: 3 },
+  { id: 'cas_4', cat: 'case', name: 'デュアルチャンバー防振装甲', protect: 0.22, bench: 3300, watt: 20, price: 29000, dur: 240, year: 2030, tier: 4 },
+  { id: 'cas_5', cat: 'case', name: 'カーボン電磁シールド筐体',   protect: 0.28, bench: 5000, watt: 25, price: 48000, dur: 300, year: 2034, tier: 5 },
 
   // --- OS ---
-  { id: 'os_1', cat: 'os', name: 'Windows 11 Home パッケージ版',     bench: 300,  watt: 0, price: 16500, dur: 999, year: 2027, tier: 1 },
-  { id: 'os_2', cat: 'os', name: 'Windows 11 Pro ワークステーション', bench: 800,  watt: 0, price: 24500, dur: 999, year: 2027, tier: 2 },
-  { id: 'os_3', cat: 'os', name: 'Windows 12 AI Edition (2028)',     bench: 2200, watt: 0, price: 28000, dur: 999, year: 2028, tier: 3 },
-  { id: 'os_4', cat: 'os', name: 'NeuralOS Studio 2031',              bench: 4800, watt: 0, price: 34000, dur: 999, year: 2031, tier: 4 },
-  { id: 'os_5', cat: 'os', name: 'QuantumOS Ultimate 2034',           bench: 8500, watt: 0, price: 42000, dur: 999, year: 2034, tier: 5 }
+  { id: 'os_1', cat: 'os', name: 'Windows 11 Home パッケージ版',     bench: 500,  watt: 0, price: 16500, dur: 999, year: 2027, tier: 1 },
+  { id: 'os_2', cat: 'os', name: 'Windows 11 Pro ワークステーション', bench: 1400, watt: 0, price: 24500, dur: 999, year: 2027, tier: 2 },
+  { id: 'os_3', cat: 'os', name: 'Windows 12 AI Edition (2028)',     bench: 3600, watt: 0, price: 28000, dur: 999, year: 2028, tier: 3 },
+  { id: 'os_4', cat: 'os', name: 'NeuralOS Studio 2031',              bench: 6800, watt: 0, price: 34000, dur: 999, year: 2031, tier: 4 },
+  { id: 'os_5', cat: 'os', name: 'QuantumOS Ultimate 2034',           bench: 11200,watt: 0, price: 42000, dur: 999, year: 2034, tier: 5 }
 ];
 
 /* ============================================================================
    5. TOURNAMENT RANKS (E -> S)
+   Aligned with socket-compatible maximum benchmark:
+   - 2027 max valid bench (AM5 + DDR5 + RTX 5090 + 1200W + Win11 Pro) = 49,900
+   - S-rank baseMinBench = 46,500 so 2027's true top socket-matched build can
+     enter S-rank, while later years scale thresholds cleanly.
 ============================================================================ */
-const RANKS = [
+const BASE_RANKS = [
   {
-    id: 'E', name: 'Eランク・町内AIカップ', minBench: 2200, stress: 3.5,
+    id: 'E', name: 'Eランク・町内AIカップ', baseMinBench: 2200, eraScale: 0.04, stress: 3.5,
     prizes: [28000, 16000, 11000, 8000, 6000, 4500, 3500, 2500, 2000, 1500],
     rivalDurRange: [45, 72],
     desc: '入門向け大会！安価な中古完成品PCでも出場＆好勝負ができる！'
   },
   {
-    id: 'D', name: 'Dランク・秋葉原ルーキー戦', minBench: 8500, stress: 11,
+    id: 'D', name: 'Dランク・秋葉原ルーキー戦', baseMinBench: 8500, eraScale: 0.06, stress: 11,
     prizes: [55000, 32000, 20000, 14000, 10000, 7500, 5500, 4000, 3000, 2000],
     rivalDurRange: [105, 138],
     desc: 'ミドル級への登竜門。冷却と電源の耐久度が試される。'
   },
   {
-    id: 'C', name: 'Cランク・関東電脳リーグ', minBench: 18000, stress: 18,
-    prizes: [120000, 70000, 45000, 30000, 22000, 16000, 12000, 9000, 6000, 4000],
+    id: 'C', name: 'Cランク・関東電脳リーグ', baseMinBench: 16500, eraScale: 0.08, stress: 18,
+    prizes: [110000, 65000, 42000, 28000, 20000, 15000, 11000, 8000, 5500, 3500],
     rivalDurRange: [135, 175],
     desc: '中堅ビルダーが集う激戦区。簡易水冷や高品質電源が有効。'
   },
   {
-    id: 'B', name: 'Bランク・ジャパンAIマスターズ', minBench: 32000, stress: 25,
-    prizes: [260000, 150000, 95000, 65000, 45000, 32000, 24000, 18000, 12000, 8000],
+    id: 'B', name: 'Bランク・ジャパンAIマスターズ', baseMinBench: 25500, eraScale: 0.10, stress: 25,
+    prizes: [220000, 130000, 82000, 56000, 40000, 28000, 20000, 15000, 10000, 7000],
     rivalDurRange: [175, 220],
-    desc: '次世代パーツが飛び交うハイレベル大会！'
+    desc: 'ハイレベル大会！ソケット一致と耐久バランスが問われる。'
   },
   {
-    id: 'A', name: 'Aランク・アジア電脳グランプリ', minBench: 52000, stress: 33,
-    prizes: [550000, 320000, 200000, 140000, 95000, 68000, 50000, 36000, 25000, 15000],
+    id: 'A', name: 'Aランク・アジア電脳グランプリ', baseMinBench: 36000, eraScale: 0.11, stress: 33,
+    prizes: [420000, 250000, 160000, 110000, 78000, 55000, 40000, 28000, 19000, 12000],
     rivalDurRange: [215, 265],
     desc: 'トップ層のみが立てる舞台。高耐久パーツの厳選が必須！'
   },
   {
-    id: 'S', name: 'Sランク・ワールドAIチャンピオンシップ', minBench: 78000, stress: 42,
-    prizes: [1500000, 800000, 500000, 350000, 250000, 180000, 130000, 90000, 60000, 40000],
+    id: 'S', name: 'Sランク・ワールドAIチャンピオンシップ', baseMinBench: 46500, eraScale: 0.11, stress: 42,
+    prizes: [950000, 550000, 340000, 230000, 160000, 115000, 80000, 55000, 38000, 25000],
     rivalDurRange: [260, 315],
     desc: '最高峰の頂上決戦！優勝すればゲームクリア達成！'
   }
 ];
 
+function getScaledRanks(year = 2027) {
+  const yearsElapsed = Math.max(0, Math.min(10, year - 2027));
+  return BASE_RANKS.map(r => {
+    const eraFactor = 1 + yearsElapsed * r.eraScale;
+    const minBench = Math.round((r.baseMinBench * eraFactor) / 500) * 500;
+    const prizeScale = 1 + yearsElapsed * 0.04;
+    const prizes = r.prizes.map(p => Math.round((p * prizeScale) / 500) * 500);
+    return {
+      ...r,
+      minBench,
+      prizes,
+      eraFactor
+    };
+  });
+}
+
 /* ============================================================================
-   6. 7 ONLINE SHOPS & MARKETPLACES CONFIGURATION (DISTINCT ROLES & THEMES)
+   6. 7 ONLINE SHOPS & MARKETPLACES CONFIGURATION
 ============================================================================ */
 const SHOPS = [
   { id: 'flea1', type: 'flea', persona: 'odd_starter', name: 'フリマA・ジャンク＆個人出品', tag: 'フリマA', desc: '個人出品の格安入門機・偏った構成・ワケあり品が集まるフリマ', color: 'from-rose-500 to-red-600' },
@@ -669,7 +682,7 @@ const SELLERS_BY_PERSONA = {
    7. MAIN APPLICATION STATE & GAME LOGIC
 ============================================================================ */
 const App = (() => {
-  const SAVE_KEY = 'pasokon_battle_save_v5';
+  const SAVE_KEY = 'pasokon_battle_save_v7';
 
   let state = null;
   let currentTab = 'home';
@@ -679,9 +692,9 @@ const App = (() => {
   let shopSubMode = 'browse';
   let btoDraft = {};
   let fleaDraft = { selectedUids: [], price: 15000 };
+  let disassembleHistory = [];
   let battleSelectedPcIdx = 0;
 
-  // ADV state
   let advMode = false;
   let advQueue = [];
   let advIdx = 0;
@@ -690,7 +703,6 @@ const App = (() => {
   let advDone = false;
   let advDoneCb = null;
 
-  // Arena state
   let inArena = false;
   let arenaTimer = null;
 
@@ -733,7 +745,6 @@ const App = (() => {
     return state.pcs[comparePcIdx];
   }
 
-  /* ---------------------- SAVE / LOAD / DELETE ---------------------- */
   function saveExists() {
     try {
       return !!localStorage.getItem(SAVE_KEY);
@@ -746,9 +757,7 @@ const App = (() => {
     try {
       if (!state) return;
       localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-    } catch (e) {
-      // Storage restriction fallback
-    }
+    } catch (e) {}
   }
 
   function loadSave() {
@@ -783,6 +792,7 @@ const App = (() => {
     selectedShopId = 'flea1';
     shopSubMode = 'browse';
     fleaDraft = { selectedUids: [], price: 15000 };
+    disassembleHistory = [];
     generateWeeklyMarket();
     writeSave();
     document.getElementById('hud-header').classList.remove('hidden');
@@ -807,9 +817,7 @@ const App = (() => {
   function deleteSaveData() {
     try {
       localStorage.removeItem(SAVE_KEY);
-    } catch (e) {
-      // Ignore storage removal errors
-    }
+    } catch (e) {}
     state = null;
     closeModal();
     AudioSys.se('click');
@@ -822,20 +830,12 @@ const App = (() => {
       'セーブデータの削除',
       '保存されているセーブデータを完全に削除しますか？この操作は取り消せません。',
       [
-        {
-          label: 'キャンセル',
-          cls: 'px-3 py-2 rounded-xl text-xs font-bold bg-slate-700 text-slate-200'
-        },
-        {
-          label: '削除する',
-          cls: 'px-3 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white',
-          onClick: () => deleteSaveData()
-        }
+        { label: 'キャンセル', cls: 'px-3 py-2 rounded-xl text-xs font-bold bg-slate-700 text-slate-200' },
+        { label: '削除する', cls: 'px-3 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white', onClick: () => deleteSaveData() }
       ]
     );
   }
 
-  /* ---------------------- MODAL DIALOG HELPERS ---------------------- */
   function showModal(title, htmlContent, buttons = []) {
     const backdrop = document.getElementById('modal-backdrop');
     const titleEl = document.getElementById('modal-title');
@@ -1002,12 +1002,12 @@ const App = (() => {
       {
         speaker: `次郎（${state.age}歳）`,
         mood: 'build',
-        text: '「まずはパソコンを1台手に入れないとな。通販やフリマで安い中古完成品PCやパーツを探そう。注文した品物は翌週に届くぞ！」'
+        text: '「CPUとマザーボードのソケット一致、メモリ規格、電源容量――ここを外すと起動すらしない。パーツの相性と耐久を見極めよう！」'
       },
       {
         speaker: 'ナレーション',
         mood: 'normal',
-        text: 'リミットは2037年1月1週までの10年間。パーツの相性・耐久度を見極め、栄光のSランク頂点を目指せ！'
+        text: 'リミットは2037年1月1週までの10年間。ソケットの壁を越え、栄光のSランク頂点を目指せ！'
       }
     ], () => {
       currentTab = 'home';
@@ -1028,7 +1028,7 @@ const App = (() => {
       {
         speaker: `次郎（${state.age}歳）`,
         mood: 'happy',
-        text: '「やったああああ！！10年間の自作PC道、パーツ選びも耐久管理もすべてが報われた瞬間だ！！」'
+        text: '「やったああああ！！10年間の自作PC道、ソケット選びも耐久管理もすべてが報われた瞬間だ！！」'
       },
       {
         speaker: 'ナレーション',
@@ -1134,7 +1134,7 @@ const App = (() => {
         <div class="flex flex-col items-center my-2">
           <div class="anim-idle">${svgJiro('happy', 136)}</div>
           <div class="mt-1 px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700 text-[10px] text-slate-200 text-center">
-            パーツ相性・比較表示つき！耐久度が尽きる前にSランク制覇へ！
+            ソケット一致・比較表示つき！耐久度が尽きる前にSランク制覇へ！
           </div>
         </div>
 
@@ -1261,7 +1261,9 @@ const App = (() => {
   }
 
   /* ==========================================================================
-     STORE-SPECIFIC NON-DUPLICATE BUILD & BENCHMARK GENERATOR
+     SOCKET-CONSISTENT BUILD GENERATOR
+     Ensures CPU socket == Mobo socket, Mobo ramType == RAM ramType,
+     and PSU supply >= totalWatt for every valid preset build.
   ========================================================================== */
   function pickByRank(list, rankRatio = 0.5) {
     if (!list || list.length === 0) return null;
@@ -1283,11 +1285,11 @@ const App = (() => {
     const cases = byCat('case');
     const oss = byCat('os');
 
-    const jitter = () => (Math.random() - 0.5) * 0.14;
+    const jitter = () => (Math.random() - 0.5) * 0.12;
     let cpu, mobo, ram, gpu, cooler, ssd, pcCase, os;
 
     if (profileKey === 'cheap_starter') {
-      cpu = pickByRank(cpus, 0.0 + Math.random() * 0.18);
+      cpu = pickByRank(cpus, 0.0 + Math.random() * 0.16);
       mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.0);
       ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.0);
       gpu = pickByRank(gpus, 0.0 + Math.random() * 0.15);
@@ -1299,8 +1301,8 @@ const App = (() => {
       cpu = pickByRank(cpus, 0.2 + jitter());
       mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.2);
       ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.25);
-      gpu = pickByRank(gpus, 0.05 + Math.random() * 0.15);
-      cooler = pickByRank(coolers, 0.15 + Math.random() * 0.25);
+      gpu = pickByRank(gpus, 0.08 + Math.random() * 0.14);
+      cooler = pickByRank(coolers, 0.18 + Math.random() * 0.22);
       ssd = pickByRank(ssds, 0.35 + Math.random() * 0.3);
       pcCase = pickByRank(cases, 0.1 + Math.random() * 0.25);
       os = pickByRank(oss, 0.25);
@@ -1308,35 +1310,34 @@ const App = (() => {
       cpu = pickByRank(cpus, 0.35 + jitter());
       mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.35);
       ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.4 + jitter());
-      gpu = pickByRank(gpus, 0.35 + jitter());
-      cooler = pickByRank(coolers, 0.25 + jitter());
+      gpu = pickByRank(gpus, 0.38 + jitter());
+      cooler = pickByRank(coolers, 0.28 + jitter());
       ssd = pickByRank(ssds, 0.3 + jitter());
       pcCase = pickByRank(cases, 0.25 + jitter());
-      os = pickByRank(oss, 0.2);
+      os = pickByRank(oss, 0.25);
     } else if (profileKey === 'ai_compute') {
-      cpu = pickByRank(cpus, 0.65 + jitter());
-      mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.6);
-      ram = rams.find(r => r.ramType === mobo.ramType && r.bench >= pickByRank(rams, 0.7).bench)
-        || pickByRank(rams, 0.85);
-      gpu = pickByRank(gpus, 0.8 + Math.random() * 0.2);
-      cooler = pickByRank(coolers, 0.4 + jitter());
-      ssd = pickByRank(ssds, 0.65 + jitter());
-      pcCase = pickByRank(cases, 0.35 + jitter());
-      os = pickByRank(oss, 0.65);
+      cpu = cpus[cpus.length - 1];
+      mobo = mobos.find(m => m.socket === cpu.socket) || mobos[mobos.length - 1];
+      ram = rams.filter(r => r.ramType === mobo.ramType).pop() || rams[rams.length - 1];
+      gpu = gpus[gpus.length - 1];
+      cooler = pickByRank(coolers, 0.55 + Math.random() * 0.45);
+      ssd = pickByRank(ssds, 0.75 + Math.random() * 0.25);
+      pcCase = pickByRank(cases, 0.45 + Math.random() * 0.4);
+      os = oss[oss.length - 1];
     } else if (profileKey === 'tough_quiet') {
-      cpu = pickByRank(cpus, 0.5 + jitter());
+      cpu = pickByRank(cpus, 0.55 + jitter());
       mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.55);
-      ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.5);
-      gpu = pickByRank(gpus, 0.45 + jitter());
-      cooler = pickByRank(coolers, 0.8 + Math.random() * 0.2);
-      ssd = pickByRank(ssds, 0.5 + jitter());
-      pcCase = pickByRank(cases, 0.8 + Math.random() * 0.2);
-      os = pickByRank(oss, 0.5);
+      ram = rams.filter(r => r.ramType === mobo.ramType).pop() || pickByRank(rams, 0.55);
+      gpu = pickByRank(gpus, 0.5 + jitter());
+      cooler = coolers[coolers.length - 1];
+      ssd = pickByRank(ssds, 0.55 + jitter());
+      pcCase = cases[cases.length - 1];
+      os = pickByRank(oss, 0.55);
     } else if (profileKey === 'odd_unbalanced') {
       const flip = Math.random() < 0.5;
       cpu = pickByRank(cpus, flip ? 0.1 + Math.random() * 0.2 : 0.55 + Math.random() * 0.25);
       mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.2);
-      ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.15 + Math.random() * 0.45);
+      ram = rams.filter(r => r.ramType === mobo.ramType).pop() || pickByRank(rams, 0.15 + Math.random() * 0.45);
       gpu = pickByRank(gpus, flip ? 0.5 + Math.random() * 0.3 : 0.05 + Math.random() * 0.2);
       cooler = pickByRank(coolers, 0.0 + Math.random() * 0.45);
       ssd = pickByRank(ssds, 0.1 + Math.random() * 0.5);
@@ -1345,8 +1346,8 @@ const App = (() => {
     } else {
       cpu = pickByRank(cpus, 0.72 + jitter());
       mobo = mobos.find(m => m.socket === cpu.socket) || pickByRank(mobos, 0.7);
-      ram = rams.find(r => r.ramType === mobo.ramType) || pickByRank(rams, 0.75 + jitter());
-      gpu = pickByRank(gpus, 0.7 + jitter());
+      ram = rams.filter(r => r.ramType === mobo.ramType).pop() || pickByRank(rams, 0.75 + jitter());
+      gpu = pickByRank(gpus, 0.72 + jitter());
       cooler = pickByRank(coolers, 0.65 + jitter());
       ssd = pickByRank(ssds, 0.65 + jitter());
       pcCase = pickByRank(cases, 0.65 + jitter());
@@ -1354,7 +1355,7 @@ const App = (() => {
     }
 
     const needWatt = cpu.watt + gpu.watt + mobo.watt + ram.watt + cooler.watt + ssd.watt + pcCase.watt;
-    const extraHeadroom = profileKey === 'tough_quiet' ? 220 : profileKey === 'ai_compute' ? 140 : 60;
+    const extraHeadroom = (profileKey === 'tough_quiet' || profileKey === 'ai_compute') ? 220 : 80;
     const psu = psus.find(p => (p.supply || 0) >= needWatt + extraHeadroom)
       || psus.find(p => (p.supply || 0) >= needWatt)
       || psus[psus.length - 1];
@@ -2006,8 +2007,8 @@ const App = (() => {
       if (newReleases.length > 0) {
         writeSave();
         startAdv([
-          { speaker: '電脳ニュース速報', mood: 'normal', text: `${state.year}年新春！次世代PCパーツ「${newReleases[0].name}」などが各PC通販サイトで発売開始！` },
-          { speaker: `次郎（${state.age}歳）`, mood: 'happy', text: '「おおっ、新しい世代のパーツが出たのか！上位ランク攻略に向けてチェックしなければ！」' }
+          { speaker: '電脳ニュース速報', mood: 'normal', text: `${state.year}年新春！次世代パーツ「${newReleases[0].name}」などが登場し、大会の必要ベンチマーク基準も時代に合わせて更新された！` },
+          { speaker: `次郎（${state.age}歳）`, mood: 'happy', text: '「おおっ、新しい時代とパーツが来たぞ！ソケットと耐久を見極めて勝ち上がろう！」' }
         ], () => renderApp());
         return;
       }
@@ -2081,11 +2082,12 @@ const App = (() => {
     renderApp();
   }
 
-  /* ---------------------- TAB 1: HOME (JIRO'S ROOM) ---------------------- */
+  /* ---------------------- TAB 1: HOME ---------------------- */
   function renderHomeTab() {
     const main = document.getElementById('main-view');
     const remainYears = Math.max(0, 2037 - state.year);
-    const rankBadges = RANKS.map(r => {
+    const ranks = getScaledRanks(state.year);
+    const rankBadges = ranks.map(r => {
       const ok = state.clearedRanks[r.id];
       return `<span class="px-2 py-0.5 rounded-md text-[10px] font-black ${ok ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400 border border-slate-700'}">${r.id}${ok ? '★' : ''}</span>`;
     }).join('');
@@ -2755,9 +2757,18 @@ const App = (() => {
       .filter(Boolean)
       .map(it => ({ specId: it.specId, condition: it.condition || 'used', durRatio: it.dur / Math.max(1, it.maxDur) }));
 
-    const pcPackButtons = state.pcs.filter(p => Object.keys(p.parts).length > 0).map((pc, idx) => `
-      <button type="button" onclick="App.packPcForListing(${idx})" class="px-2 py-1 rounded-lg bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-500/50 text-[10px] font-bold text-indigo-200">
-        📦「${pc.name}」のパーツを出品候補へ移す
+    const pcPackButtons = state.pcs.map((pc, idx) => {
+      const partCount = Object.keys(pc.parts || {}).length;
+      return `
+        <button type="button" onclick="App.packPcForListing(${idx})" ${partCount > 0 ? '' : 'disabled'} class="px-2 py-1 rounded-lg border text-[10px] font-bold ${partCount > 0 ? 'bg-indigo-900/80 hover:bg-indigo-800 border-indigo-500/50 text-indigo-200' : 'bg-slate-800/60 border-slate-700 text-slate-500'}">
+          📦「${pc.name}」のパーツを出品候補へ移す (${partCount}点)
+        </button>
+      `;
+    }).join('');
+
+    const undoButtons = disassembleHistory.map((snap, hIdx) => `
+      <button type="button" onclick="App.restoreDisassembledPc(${hIdx})" class="px-2 py-1 rounded-lg bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-500/60 text-[10px] font-black text-emerald-200">
+        ↩ 「${snap.pcName}」の分解を元に戻す
       </button>
     `).join('');
 
@@ -2783,6 +2794,19 @@ const App = (() => {
           <p class="text-[10px] text-slate-300 mb-2">複数選択して「パーツセット」や「未完成PC」として出品可能。週を進めると売れます（高すぎると売れません）。</p>
 
           <div class="flex flex-wrap gap-1 mb-2">${pcPackButtons}</div>
+          ${undoButtons ? `<div class="flex flex-wrap gap-1 mb-2">${undoButtons}</div>` : ''}
+
+          <div class="flex items-center justify-between gap-1.5 mb-1.5">
+            <span class="text-[10px] font-bold text-slate-300">選択中: ${fleaDraft.selectedUids.length} / ${state.inventory.length}点</span>
+            <div class="flex items-center gap-1">
+              <button type="button" onclick="App.selectAllFleaItems()" class="px-2 py-0.5 rounded bg-sky-800/80 hover:bg-sky-700 border border-sky-500/40 text-[10px] font-bold text-sky-200">
+                全選択
+              </button>
+              <button type="button" onclick="App.deselectAllFleaItems()" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[10px] font-bold text-slate-300">
+                全選択解除
+              </button>
+            </div>
+          </div>
 
           <div class="max-h-36 overflow-y-auto flex flex-col gap-1 mb-2 pr-0.5">
             ${invCheckboxes || '<div class="text-[11px] text-slate-500 py-2 text-center">出品できる手持ちパーツがありません</div>'}
@@ -2840,31 +2864,107 @@ const App = (() => {
     renderApp();
   }
 
+  function selectAllFleaItems() {
+    AudioSys.se('click');
+    fleaDraft.selectedUids = state.inventory.map(it => it.uid);
+    recalcSuggestedFleaPrice();
+    renderApp();
+  }
+
+  function deselectAllFleaItems() {
+    AudioSys.se('click');
+    fleaDraft.selectedUids = [];
+    renderApp();
+  }
+
   function updateFleaPrice(val) {
     fleaDraft.price = Math.max(500, parseInt(val, 10) || 1000);
   }
 
   function packPcForListing(pcIdx) {
-    const pc = state.pcs[pcIdx];
+    const idx = parseInt(pcIdx, 10);
+    const pc = state.pcs[idx];
+    if (!pc || !pc.parts) return;
     const keys = Object.keys(pc.parts);
     if (keys.length === 0) return;
-    AudioSys.se('build');
+
+    const snapshotParts = {};
+    const movedUids = [];
     keys.forEach(k => {
       const item = pc.parts[k];
-      state.inventory.push(item);
-      if (!fleaDraft.selectedUids.includes(item.uid)) fleaDraft.selectedUids.push(item.uid);
+      if (!item) return;
+      snapshotParts[k] = Object.assign({}, item);
+      if (!state.inventory.some(inv => inv.uid === item.uid)) {
+        state.inventory.push(item);
+      }
+      movedUids.push(item.uid);
       delete pc.parts[k];
     });
+
+    if (movedUids.length === 0) return;
+
+    disassembleHistory.unshift({
+      pcId: pc.id,
+      pcName: pc.name,
+      parts: snapshotParts,
+      movedUids
+    });
+    if (disassembleHistory.length > 6) disassembleHistory.pop();
+
+    movedUids.forEach(uid => {
+      if (!fleaDraft.selectedUids.includes(uid)) {
+        fleaDraft.selectedUids.push(uid);
+      }
+    });
+
     evaluatePC(pc);
     recalcSuggestedFleaPrice();
+    AudioSys.se('build');
+    writeSave();
+    renderApp();
+  }
+
+  function restoreDisassembledPc(histIdx) {
+    const snap = disassembleHistory[histIdx];
+    if (!snap) return;
+
+    let targetPc = state.pcs.find(p => p.id === snap.pcId) || state.pcs[0];
+    if (!targetPc && state.pcs.length < 6) {
+      targetPc = { id: snap.pcId || Date.now(), name: snap.pcName || '復元PC', parts: {} };
+      state.pcs.push(targetPc);
+    }
+    if (!targetPc) return;
+
+    const movedSet = new Set(snap.movedUids || []);
+    fleaDraft.selectedUids = fleaDraft.selectedUids.filter(uid => !movedSet.has(uid));
+
+    Object.entries(snap.parts || {}).forEach(([catKey, savedPart]) => {
+      if (!savedPart) return;
+      const invIdx = state.inventory.findIndex(it => it.uid === savedPart.uid);
+      let restoredItem = savedPart;
+      if (invIdx !== -1) {
+        restoredItem = state.inventory.splice(invIdx, 1)[0];
+      }
+      if (targetPc.parts[catKey]) {
+        state.inventory.push(targetPc.parts[catKey]);
+      }
+      targetPc.parts[catKey] = restoredItem;
+    });
+
+    disassembleHistory.splice(histIdx, 1);
+    evaluatePC(targetPc);
+    recalcSuggestedFleaPrice();
+    AudioSys.se('build');
+    writeSave();
     renderApp();
   }
 
   function createFleaListing() {
     if (fleaDraft.selectedUids.length === 0) return;
-    const shopId = document.getElementById('flea-target-shop').value;
+    const shopEl = document.getElementById('flea-target-shop');
     const priceInput = document.getElementById('flea-price-input');
-    const price = Math.max(500, parseInt(priceInput.value, 10) || fleaDraft.price);
+    const shopId = shopEl ? shopEl.value : 'flea1';
+    const price = Math.max(500, parseInt(priceInput ? priceInput.value : fleaDraft.price, 10) || fleaDraft.price);
 
     const packedItems = [];
     fleaDraft.selectedUids.forEach(uid => {
@@ -2874,6 +2974,12 @@ const App = (() => {
         state.inventory.splice(idx, 1);
       }
     });
+
+    if (packedItems.length === 0) {
+      fleaDraft.selectedUids = [];
+      renderApp();
+      return;
+    }
 
     const firstSp = getSpec(packedItems[0].specId);
     const hasBroken = packedItems.some(x => x.dur <= 0 && getSpec(x.specId).cat !== 'os');
@@ -2916,13 +3022,14 @@ const App = (() => {
     if (!state.pcs[battleSelectedPcIdx]) battleSelectedPcIdx = 0;
     const pc = state.pcs[battleSelectedPcIdx];
     const st = evaluatePC(pc);
+    const ranks = getScaledRanks(state.year);
 
     const pcSelectOpts = state.pcs.map((p, i) => {
       const s = evaluatePC(p);
       return `<option value="${i}" ${i === battleSelectedPcIdx ? 'selected' : ''}>${p.name} (ベンチ:${s.bench.toLocaleString()} / ${s.ok ? '出場可' : '不可'})</option>`;
     }).join('');
 
-    const rankCards = RANKS.map(r => {
+    const rankCards = ranks.map(r => {
       const cleared = state.clearedRanks[r.id];
       const benchOk = st.ok && st.bench >= r.minBench;
       return `
@@ -2934,7 +3041,7 @@ const App = (() => {
               ${cleared ? '<span class="text-[10px] font-black text-amber-300">★制覇済</span>' : ''}
             </div>
             <div class="text-[10px] text-slate-300 mt-0.5">
-              必要ベンチ: <strong class="${benchOk ? 'text-emerald-300' : 'text-rose-400'}">${r.minBench.toLocaleString()}</strong> ・ 優勝賞金: <strong class="text-amber-300">¥${r.prizes[0].toLocaleString()}</strong>
+              必要ベンチ(${state.year}年基準): <strong class="${benchOk ? 'text-emerald-300' : 'text-rose-400'}">${r.minBench.toLocaleString()}</strong> ・ 優勝賞金: <strong class="text-amber-300">¥${r.prizes[0].toLocaleString()}</strong>
             </div>
             <div class="text-[9px] text-slate-400 truncate">${r.desc}</div>
           </div>
@@ -2949,7 +3056,7 @@ const App = (() => {
     main.innerHTML = `
       <div class="flex-1 flex flex-col justify-between p-3 gap-2 overflow-y-auto text-slate-100">
         <div class="bg-slate-900/95 border border-sky-500/50 rounded-2xl p-2.5 shrink-0">
-          <div class="text-xs font-black text-sky-300 mb-1">⚡ パソコンバトル大会エントリー</div>
+          <div class="text-xs font-black text-sky-300 mb-1">⚡ パソコンバトル大会エントリー (${state.year}年時代基準)</div>
           <select onchange="App.selectBattlePc(this.value)" class="w-full bg-slate-950 border border-slate-600 rounded-xl px-2.5 py-1.5 text-xs font-black text-white">
             ${pcSelectOpts}
           </select>
@@ -2972,7 +3079,8 @@ const App = (() => {
 
   /* ---------------------- LIVE AI DURABILITY SURVIVAL ARENA ---------------------- */
   function enterTournament(rankId) {
-    const rank = RANKS.find(r => r.id === rankId);
+    const ranks = getScaledRanks(state.year);
+    const rank = ranks.find(r => r.id === rankId);
     const pc = state.pcs[battleSelectedPcIdx];
     const st = evaluatePC(pc);
     if (!rank || !st.ok || st.bench < rank.minBench) return;
@@ -3008,7 +3116,7 @@ const App = (() => {
     ];
     const entrants = rivalNames.map((name, i) => {
       const [minD, maxD] = rank.rivalDurRange;
-      const baseD = Math.round(minD + Math.random() * (maxD - minD));
+      const baseD = Math.round((minD + Math.random() * (maxD - minD)) * rank.eraFactor);
       return {
         id: `rival_${i}`,
         name,
@@ -3033,17 +3141,16 @@ const App = (() => {
     const battleLogs = [`🔥 ${rank.name} 開幕！全10台のAIがフルロード演算を開始！`];
     const physicalKeys = ['cpu', 'cooler', 'mobo', 'ram', 'gpu', 'ssd', 'psu', 'case'];
 
-    function renderArenaScreen(finished = false, finalPlacement = 10, prize = 0, hitKey = null) {
+    function renderArenaScreen(finished = false, finalPlacement = 10, prize = 0) {
       const partBars = physicalKeys.map(k => {
         const pt = pc.parts[k];
         const sp = getSpec(pt.specId);
         const pct = Math.max(0, Math.round((pt.dur / pt.maxDur) * 100));
         const barCol = pt.dur <= 0 ? 'bg-rose-600' : pct < 30 ? 'bg-amber-400' : 'bg-emerald-400';
-        const isHit = hitKey === k;
         return `
-          <div class="bg-slate-800/90 px-2 py-1 rounded-lg border ${pt.dur <= 0 ? 'border-rose-500' : isHit ? 'border-amber-300 bg-amber-950/40' : 'border-slate-700'}">
+          <div class="bg-slate-800/90 px-2 py-1 rounded-lg border ${pt.dur <= 0 ? 'border-rose-500' : 'border-slate-700'}">
             <div class="flex justify-between text-[10px] font-bold">
-              <span class="truncate">${isHit ? '⚡' : ''}${sp.name}</span>
+              <span class="truncate">${sp.name}</span>
               <span class="${pt.dur <= 0 ? 'text-rose-400 font-black' : 'text-slate-300'}">${pt.dur}/${pt.maxDur}</span>
             </div>
             <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden mt-0.5">
@@ -3063,7 +3170,7 @@ const App = (() => {
 
       const main = document.getElementById('main-view');
       main.innerHTML = `
-        <div class="flex-1 flex flex-col justify-between p-3 gap-2 bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-950 text-slate-100 overflow-y-auto ${hitKey ? 'anim-shake' : ''}">
+        <div class="flex-1 flex flex-col justify-between p-3 gap-2 bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-950 text-slate-100 overflow-y-auto">
           <div class="flex items-center justify-between bg-slate-900/90 border border-amber-400/50 rounded-2xl px-3 py-2 anim-arena">
             <div>
               <div class="text-xs font-black text-amber-300">${rank.name}</div>
@@ -3103,18 +3210,16 @@ const App = (() => {
       `;
     }
 
-    renderArenaScreen(false, 10, 0, null);
+    renderArenaScreen(false);
 
     arenaTimer = setInterval(() => {
       tickCount++;
       AudioSys.se('zap');
 
-      let lastHitKey = null;
       const jiroEntrant = entrants.find(e => e.isJiro);
       if (jiroEntrant.alive) {
         for (let hit = 0; hit < 2; hit++) {
           const k = physicalKeys[Math.floor(Math.random() * physicalKeys.length)];
-          lastHitKey = k;
           const pt = pc.parts[k];
           const rawDmg = rank.stress * (0.45 + Math.random() * 0.75);
           const finalDmg = Math.max(1, Math.round(rawDmg * (1 - mitigation)));
@@ -3166,9 +3271,9 @@ const App = (() => {
         } else {
           battleLogs.unshift(`📊 決着！次郎は第${placement}位（賞金 ¥${prize.toLocaleString()}）となった！`);
         }
-        renderArenaScreen(true, placement, prize, lastHitKey);
+        renderArenaScreen(true, placement, prize);
       } else {
-        renderArenaScreen(false, 10, 0, lastHitKey);
+        renderArenaScreen(false);
       }
     }, 340);
   }
@@ -3176,7 +3281,8 @@ const App = (() => {
   function finishArena(placement, prize, rankId) {
     inArena = false;
     state.money += prize;
-    const rank = RANKS.find(r => r.id === rankId);
+    const ranks = getScaledRanks(state.year);
+    const rank = ranks.find(r => r.id === rankId);
     const firstClear = placement === 1 && !state.clearedRanks[rankId];
     if (placement === 1) {
       state.clearedRanks[rankId] = true;
@@ -3285,8 +3391,11 @@ const App = (() => {
     orderBtoPc,
     buyMarketItem,
     toggleFleaSelect,
+    selectAllFleaItems,
+    deselectAllFleaItems,
     updateFleaPrice,
     packPcForListing,
+    restoreDisassembledPc,
     createFleaListing,
     cancelListing,
     selectBattlePc,
