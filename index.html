@@ -1,0 +1,2601 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>パソコンバトル - 自作PC＆AI競技シミュレーション</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Strict 9:16 Portrait Container with Mobile Browser Safe-Area Protection */
+  #game-shell {
+    position: relative;
+    width: min(100vw, calc(100dvh * 9 / 16));
+    height: min(100dvh, calc(100vw * 16 / 9));
+    max-width: 100vw;
+    max-height: 100dvh;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    background: linear-gradient(180deg, #0b1120 0%, #111827 100%);
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.9), 0 0 0 2px rgba(56, 189, 248, 0.22);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px;
+  }
+
+  @media (max-width: 520px) {
+    #game-shell {
+      width: 100vw;
+      height: 100dvh;
+      border-radius: 0;
+      box-shadow: none;
+    }
+  }
+
+  .keycap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(15, 23, 42, 0.92);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.55);
+    margin-left: 3px;
+    line-height: 1.15;
+    vertical-align: middle;
+  }
+
+  @keyframes floatIdle {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-4px); }
+  }
+  @keyframes popIn {
+    0% { opacity: 0; transform: scale(0.92) translateY(8px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes flashFade {
+    0% { opacity: 0.75; }
+    100% { opacity: 0; }
+  }
+  @keyframes sparkPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.35); }
+    50% { box-shadow: 0 0 22px rgba(250, 204, 21, 0.75); }
+  }
+
+  .anim-idle { animation: floatIdle 3s ease-in-out infinite; }
+  .anim-pop { animation: popIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+  .anim-arena { animation: sparkPulse 1.6s ease-in-out infinite; }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.35); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div id="game-shell">
+  <canvas id="fx-canvas" class="pointer-events-none absolute inset-0 z-50 w-full h-full"></canvas>
+  <div id="flash-overlay" class="pointer-events-none absolute inset-0 z-40 bg-white opacity-0"></div>
+
+  <!-- Top Status Bar -->
+  <header id="hud-header" class="hidden relative z-30 bg-slate-900/95 border-b border-slate-700/80 px-2.5 py-1.5 text-slate-100 shrink-0">
+    <div class="flex items-center justify-between text-[11px] font-extrabold">
+      <div class="flex items-center gap-1.5">
+        <span id="hud-date" class="px-2 py-0.5 rounded-md bg-indigo-950 border border-indigo-500/50 text-indigo-200">2027年1月1週</span>
+        <span id="hud-age" class="text-slate-300">次郎(40歳)</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span id="hud-money" class="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/50 text-amber-300 font-black">¥100,000</span>
+        <button type="button" onclick="AudioSys.toggleMute()" class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-600 text-[10px]" title="BGM/SE切替">
+          <span id="mute-icon">🔊</span><span class="keycap">M</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Viewport -->
+  <main id="main-view" class="relative flex-1 w-full overflow-hidden flex flex-col"></main>
+
+  <!-- Bottom Navigation Bar -->
+  <nav id="bottom-nav" class="hidden relative z-30 bg-slate-950 border-t border-slate-800 px-1.5 py-1 grid grid-cols-5 gap-1 shrink-0">
+    <button type="button" id="nav-home" onclick="App.setTab('home')" class="nav-btn py-1.5 rounded-xl flex flex-col items-center justify-center text-[10px] font-black bg-slate-800 text-slate-300">
+      <span>🏠 部屋</span><span class="keycap mt-0.5">1</span>
+    </button>
+    <button type="button" id="nav-build" onclick="App.setTab('build')" class="nav-btn py-1.5 rounded-xl flex flex-col items-center justify-center text-[10px] font-black bg-slate-800 text-slate-300">
+      <span>🔧 自作</span><span class="keycap mt-0.5">2</span>
+    </button>
+    <button type="button" id="nav-shop" onclick="App.setTab('shop')" class="nav-btn py-1.5 rounded-xl flex flex-col items-center justify-center text-[10px] font-black bg-slate-800 text-slate-300">
+      <span>🛒 通販</span><span class="keycap mt-0.5">3</span>
+    </button>
+    <button type="button" id="nav-flea" onclick="App.setTab('flea')" class="nav-btn py-1.5 rounded-xl flex flex-col items-center justify-center text-[10px] font-black bg-slate-800 text-slate-300">
+      <span>📦 出品</span><span class="keycap mt-0.5">4</span>
+    </button>
+    <button type="button" id="nav-battle" onclick="App.setTab('battle')" class="nav-btn py-1.5 rounded-xl flex flex-col items-center justify-center text-[10px] font-black bg-slate-800 text-slate-300">
+      <span>⚡ 大会</span><span class="keycap mt-0.5">5</span>
+    </button>
+  </nav>
+
+  <!-- Custom Modal Dialog (Never uses alert/confirm) -->
+  <div id="modal-backdrop" class="hidden absolute inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-xs bg-slate-900 border-2 border-sky-400/70 rounded-2xl p-4 shadow-2xl anim-pop text-slate-100">
+      <h3 id="modal-title" class="text-sm font-black text-sky-300 mb-1.5">確認</h3>
+      <div id="modal-content" class="text-xs leading-relaxed text-slate-200 mb-4 max-h-60 overflow-y-auto"></div>
+      <div id="modal-buttons" class="flex flex-wrap gap-2 justify-end"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   1. PROCEDURAL WEB AUDIO ENGINE (BGM & SOUND EFFECTS)
+============================================================================ */
+const AudioSys = (() => {
+  let ctx = null;
+  let muted = false;
+  let bgmTimer = null;
+  let activeTrack = null;
+  let step = 0;
+
+  function init() {
+    try {
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) ctx = new AC();
+      }
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume();
+      }
+    } catch (e) {
+      // Ignore audio init errors in restricted environments
+    }
+  }
+
+  function tone(freq, dur, type = 'sine', vol = 0.06, delay = 0) {
+    if (muted) return;
+    init();
+    if (!ctx) return;
+    try {
+      const t = ctx.currentTime + delay;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + dur + 0.02);
+    } catch (e) {
+      // Ignore transient oscillator errors
+    }
+  }
+
+  const tracks = {
+    room:  { ms: 260, type: 'triangle', seq: [261.6, 329.6, 392.0, 493.9, 392.0, 329.6, 293.7, 392.0] },
+    adv:   { ms: 330, type: 'sine',     seq: [349.2, 440.0, 523.3, 440.0, 329.6, 392.0, 493.9, 392.0] },
+    shop:  { ms: 210, type: 'triangle', seq: [392.0, 440.0, 493.9, 523.3, 587.3, 523.3, 493.9, 440.0] },
+    arena: { ms: 135, type: 'sawtooth', seq: [164.8, 196.0, 246.9, 164.8, 220.0, 261.6, 329.6, 246.9] }
+  };
+
+  function playBgm(name) {
+    if (activeTrack === name && bgmTimer) return;
+    stopBgm();
+    activeTrack = name;
+    step = 0;
+    const tr = tracks[name];
+    if (!tr) return;
+    bgmTimer = setInterval(() => {
+      if (muted) return;
+      const f = tr.seq[step % tr.seq.length];
+      tone(f, (tr.ms / 1000) * 0.85, tr.type, name === 'arena' ? 0.032 : 0.042);
+      step++;
+    }, tr.ms);
+  }
+
+  function stopBgm() {
+    if (bgmTimer) {
+      clearInterval(bgmTimer);
+      bgmTimer = null;
+    }
+    activeTrack = null;
+  }
+
+  function se(kind) {
+    if (muted) return;
+    init();
+    switch (kind) {
+      case 'click': tone(640, 0.06, 'triangle', 0.08); break;
+      case 'blip':  tone(480 + Math.random() * 140, 0.03, 'sine', 0.035); break;
+      case 'buy':   tone(587.3, 0.09, 'triangle', 0.1, 0); tone(880, 0.18, 'triangle', 0.12, 0.07); break;
+      case 'build': tone(330, 0.08, 'square', 0.07, 0); tone(440, 0.08, 'square', 0.07, 0.06); tone(660, 0.16, 'triangle', 0.1, 0.12); break;
+      case 'zap':   tone(190 + Math.random() * 160, 0.09, 'sawtooth', 0.07); break;
+      case 'break': tone(150, 0.22, 'sawtooth', 0.13, 0); tone(95, 0.32, 'square', 0.13, 0.12); break;
+      case 'win':   [523.3, 659.3, 784, 1046.5].forEach((f, i) => tone(f, 0.22, 'triangle', 0.11, i * 0.09)); break;
+      case 'lose':  [349.2, 311.1, 277.2, 220].forEach((f, i) => tone(f, 0.24, 'sawtooth', 0.08, i * 0.14)); break;
+      case 'week':  tone(440, 0.08, 'sine', 0.07, 0); tone(554.4, 0.12, 'sine', 0.07, 0.06); break;
+      default:      tone(520, 0.05, 'sine', 0.05); break;
+    }
+  }
+
+  function toggleMute() {
+    muted = !muted;
+    const el = document.getElementById('mute-icon');
+    if (el) el.textContent = muted ? '🔇' : '🔊';
+    if (!muted) se('click');
+  }
+
+  return { init, playBgm, stopBgm, se, toggleMute };
+})();
+
+/* ============================================================================
+   2. PARTICLE & FLASH VISUAL EFFECTS
+============================================================================ */
+const FX = (() => {
+  const canvas = document.getElementById('fx-canvas');
+  const ctx = canvas.getContext('2d');
+  let list = [];
+  let active = false;
+
+  function resize() {
+    if (!canvas.parentElement) return;
+    const r = canvas.parentElement.getBoundingClientRect();
+    canvas.width = Math.max(1, Math.floor(r.width));
+    canvas.height = Math.max(1, Math.floor(r.height));
+  }
+  window.addEventListener('resize', resize);
+
+  function confetti() {
+    resize();
+    for (let i = 0; i < 65; i++) {
+      list.push({
+        x: Math.random() * canvas.width,
+        y: -15 - Math.random() * 100,
+        vx: (Math.random() - 0.5) * 2.4,
+        vy: 2.2 + Math.random() * 3.4,
+        sz: 5 + Math.random() * 4,
+        c: ['#fbbf24', '#38bdf8', '#f43f5e', '#a855f7', '#34d399'][i % 5],
+        life: 1
+      });
+    }
+    if (!active) tick();
+  }
+
+  function tick() {
+    active = true;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    list.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.13;
+      p.life -= 0.017;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(p.x - p.sz / 2, p.y - p.sz / 2, p.sz, p.sz * 0.7);
+      ctx.restore();
+    });
+    list = list.filter(p => p.life > 0);
+    if (list.length > 0) {
+      requestAnimationFrame(tick);
+    } else {
+      active = false;
+    }
+  }
+
+  function flash(color = '#ffffff') {
+    const el = document.getElementById('flash-overlay');
+    if (!el) return;
+    el.style.backgroundColor = color;
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = 'flashFade 0.32s ease-out forwards';
+  }
+
+  return { confetti, flash };
+})();
+
+/* ============================================================================
+   3. CUSTOM SVG ILLUSTRATIONS (JIRO + 8 PC COMPONENTS + OS + PC RIG)
+============================================================================ */
+function svgJiro(mood = 'normal', size = 120) {
+  const happy = mood === 'happy';
+  const sad = mood === 'sad';
+  const build = mood === 'build';
+  const mouth = happy
+    ? 'M 63 95 Q 80 113 97 95 Z'
+    : sad
+    ? 'M 65 105 Q 80 93 95 105'
+    : build
+    ? 'M 70 99 Q 80 96 90 101'
+    : 'M 67 97 Q 80 106 93 97';
+  const brow = sad ? 4 : build ? -2 : 0;
+
+  return `
+  <svg viewBox="0 0 160 160" width="${size}" height="${size}" class="overflow-visible drop-shadow-md">
+    <defs>
+      <linearGradient id="jHoodie" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#334155"/><stop offset="100%" stop-color="#0f172a"/>
+      </linearGradient>
+      <linearGradient id="jTee" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#0369a1"/>
+      </linearGradient>
+    </defs>
+    <path d="M 10 158 C 12 116, 40 108, 80 108 C 120 108, 148 116, 150 158 Z" fill="url(#jHoodie)" stroke="#020617" stroke-width="2.5"/>
+    <path d="M 54 110 L 80 156 L 106 110 Z" fill="url(#jTee)"/>
+    <rect x="61" y="95" width="38" height="22" rx="10" fill="#fed7aa"/>
+    <circle cx="35" cy="76" r="9" fill="#fdba74" stroke="#9a3412" stroke-width="1.5"/>
+    <circle cx="125" cy="76" r="9" fill="#fdba74" stroke="#9a3412" stroke-width="1.5"/>
+    <ellipse cx="80" cy="74" rx="45" ry="42" fill="#fed7aa" stroke="#9a3412" stroke-width="2"/>
+    <path d="M 58 107 Q 80 116 102 107" fill="none" stroke="#ea580c" stroke-width="2" opacity="0.65"/>
+    <ellipse cx="51" cy="84" rx="8" ry="5" fill="#fb7185" opacity="0.35"/>
+    <ellipse cx="109" cy="84" rx="8" ry="5" fill="#fb7185" opacity="0.35"/>
+    <!-- Full Thick Black Hair -->
+    <path d="M 33 72 C 29 33, 52 16, 80 16 C 108 16, 131 33, 127 72 C 123 53, 113 44, 101 42 C 93 48, 83 47, 76 41 C 63 48, 45 48, 33 72 Z" fill="#1e293b" stroke="#020617" stroke-width="2.2"/>
+    <path d="M 46 24 Q 70 11 98 19 Q 116 25 121 41" fill="none" stroke="#475569" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M 51 ${60 + brow} Q 61 ${55 - brow} 71 ${60 + brow}" fill="none" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M 89 ${60 + brow} Q 99 ${55 - brow} 109 ${60 + brow}" fill="none" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round"/>
+    <rect x="48" y="64" width="26" height="16" rx="4" fill="rgba(255,255,255,0.22)" stroke="#0f172a" stroke-width="2.4"/>
+    <rect x="86" y="64" width="26" height="16" rx="4" fill="rgba(255,255,255,0.22)" stroke="#0f172a" stroke-width="2.4"/>
+    <line x1="74" y1="71" x2="86" y2="71" stroke="#0f172a" stroke-width="2.4"/>
+    ${happy
+      ? '<path d="M 54 73 Q 61 66 68 73" fill="none" stroke="#0f172a" stroke-width="2.6" stroke-linecap="round"/><path d="M 92 73 Q 99 66 106 73" fill="none" stroke="#0f172a" stroke-width="2.6" stroke-linecap="round"/>'
+      : '<circle cx="61" cy="72" r="3.4" fill="#0f172a"/><circle cx="99" cy="72" r="3.4" fill="#0f172a"/><circle cx="62.2" cy="70.8" r="1.1" fill="#fff"/><circle cx="100.2" cy="70.8" r="1.1" fill="#fff"/>'}
+    <path d="M 78 76 Q 75 84 82 85" fill="none" stroke="#c2410c" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="${mouth}" fill="${happy ? '#f43f5e' : 'none'}" stroke="#7c2d12" stroke-width="2.5" stroke-linecap="round"/>
+    ${(sad || build) ? '<path d="M 123 48 C 123 48, 129 59, 126 64 C 124 67, 120 66, 120 62 C 120 58, 123 48, 123 48 Z" fill="#38bdf8"/>' : ''}
+  </svg>`;
+}
+
+function svgPartIcon(cat, tier = 1, broken = false, size = 42) {
+  const palette = broken
+    ? { main: '#475569', hi: '#94a3b8', glow: '#ef4444' }
+    : tier >= 5
+    ? { main: '#a855f7', hi: '#f0abfc', glow: '#e879f9' }
+    : tier >= 4
+    ? { main: '#f59e0b', hi: '#fde047', glow: '#fbbf24' }
+    : tier >= 3
+    ? { main: '#0ea5e9', hi: '#7dd3fc', glow: '#38bdf8' }
+    : tier >= 2
+    ? { main: '#10b981', hi: '#6ee7b7', glow: '#34d399' }
+    : { main: '#64748b', hi: '#cbd5e1', glow: '#94a3b8' };
+
+  let shape = '';
+  switch (cat) {
+    case 'cpu':
+      shape = `
+        <rect x="14" y="14" width="36" height="36" rx="4" fill="#15803d" stroke="#052e16" stroke-width="2"/>
+        <rect x="20" y="20" width="24" height="24" rx="3" fill="${palette.hi}" stroke="#1e293b" stroke-width="1.5"/>
+        <circle cx="24" cy="24" r="2" fill="#f59e0b"/>
+        <line x1="10" y1="22" x2="14" y2="22" stroke="#fbbf24" stroke-width="2"/><line x1="10" y1="32" x2="14" y2="32" stroke="#fbbf24" stroke-width="2"/><line x1="10" y1="42" x2="14" y2="42" stroke="#fbbf24" stroke-width="2"/>
+        <line x1="50" y1="22" x2="54" y2="22" stroke="#fbbf24" stroke-width="2"/><line x1="50" y1="32" x2="54" y2="32" stroke="#fbbf24" stroke-width="2"/><line x1="50" y1="42" x2="54" y2="42" stroke="#fbbf24" stroke-width="2"/>`;
+      break;
+    case 'cooler':
+      shape = `
+        <rect x="12" y="12" width="40" height="40" rx="8" fill="#1e293b" stroke="${palette.main}" stroke-width="2.5"/>
+        <circle cx="32" cy="32" r="15" fill="#0f172a" stroke="${palette.hi}" stroke-width="1.8"/>
+        <path d="M 32 19 Q 41 25 32 32 Q 43 37 32 45 Q 23 39 32 32 Q 21 27 32 19 Z" fill="${palette.glow}"/>
+        <circle cx="32" cy="32" r="4" fill="#fff"/>`;
+      break;
+    case 'mobo':
+      shape = `
+        <rect x="12" y="10" width="40" height="44" rx="4" fill="#0f172a" stroke="${palette.main}" stroke-width="2.2"/>
+        <rect x="18" y="16" width="14" height="14" rx="2" fill="#334155" stroke="${palette.hi}" stroke-width="1.5"/>
+        <line x1="38" y1="15" x2="38" y2="33" stroke="${palette.glow}" stroke-width="2.5"/>
+        <line x1="43" y1="15" x2="43" y2="33" stroke="${palette.glow}" stroke-width="2.5"/>
+        <rect x="17" y="38" width="28" height="4" rx="1" fill="${palette.main}"/>
+        <rect x="17" y="45" width="22" height="4" rx="1" fill="#64748b"/>`;
+      break;
+    case 'ram':
+      shape = `
+        <rect x="10" y="20" width="44" height="20" rx="3" fill="#1e293b" stroke="${palette.main}" stroke-width="2"/>
+        <rect x="12" y="18" width="40" height="4" rx="1" fill="${palette.glow}"/>
+        <rect x="15" y="25" width="7" height="9" fill="#020617"/><rect x="25" y="25" width="7" height="9" fill="#020617"/>
+        <rect x="35" y="25" width="7" height="9" fill="#020617"/><rect x="45" y="25" width="5" height="9" fill="#020617"/>
+        <line x1="14" y1="42" x2="50" y2="42" stroke="#fbbf24" stroke-width="3" stroke-dasharray="3 2"/>`;
+      break;
+    case 'gpu':
+      shape = `
+        <rect x="8" y="18" width="48" height="28" rx="4" fill="#1e293b" stroke="${palette.main}" stroke-width="2.4"/>
+        <circle cx="22" cy="32" r="9" fill="#0f172a" stroke="${palette.glow}" stroke-width="2"/>
+        <circle cx="42" cy="32" r="9" fill="#0f172a" stroke="${palette.glow}" stroke-width="2"/>
+        <circle cx="22" cy="32" r="3" fill="${palette.hi}"/><circle cx="42" cy="32" r="3" fill="${palette.hi}"/>
+        <line x1="14" y1="48" x2="42" y2="48" stroke="#fbbf24" stroke-width="3"/>`;
+      break;
+    case 'ssd':
+      shape = `
+        <rect x="10" y="22" width="44" height="20" rx="3" fill="#0f172a" stroke="${palette.main}" stroke-width="2"/>
+        <rect x="16" y="26" width="12" height="12" rx="1" fill="${palette.main}"/>
+        <rect x="32" y="26" width="14" height="12" rx="1" fill="#334155"/>
+        <line x1="54" y1="26" x2="54" y2="38" stroke="#fbbf24" stroke-width="3"/>`;
+      break;
+    case 'psu':
+      shape = `
+        <rect x="10" y="15" width="44" height="34" rx="4" fill="#1e293b" stroke="${palette.main}" stroke-width="2.2"/>
+        <circle cx="27" cy="32" r="11" fill="#0f172a" stroke="${palette.hi}" stroke-width="1.5"/>
+        <path d="M 45 22 L 41 32 L 47 32 L 43 42" fill="none" stroke="#facc15" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+      break;
+    case 'case':
+      shape = `
+        <rect x="16" y="8" width="32" height="48" rx="4" fill="#0f172a" stroke="${palette.main}" stroke-width="2.4"/>
+        <rect x="20" y="13" width="24" height="32" rx="2" fill="#1e293b" stroke="${palette.glow}" stroke-width="1.2"/>
+        <circle cx="32" cy="23" r="5" fill="none" stroke="${palette.glow}" stroke-width="1.5"/>
+        <circle cx="32" cy="36" r="5" fill="none" stroke="${palette.glow}" stroke-width="1.5"/>
+        <circle cx="23" cy="51" r="2" fill="#38bdf8"/>`;
+      break;
+    case 'os':
+    default:
+      shape = `
+        <rect x="14" y="10" width="36" height="44" rx="5" fill="#0369a1" stroke="#38bdf8" stroke-width="2.2"/>
+        <rect x="21" y="18" width="9" height="9" fill="#f8fafc"/><rect x="33" y="18" width="9" height="9" fill="#bae6fd"/>
+        <rect x="21" y="30" width="9" height="9" fill="#bae6fd"/><rect x="33" y="30" width="9" height="9" fill="#f8fafc"/>`;
+      break;
+  }
+
+  const crack = broken
+    ? `<path d="M 14 14 L 30 30 L 24 38 L 48 52 M 46 14 L 32 28" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>`
+    : '';
+
+  return `<svg viewBox="0 0 64 64" width="${size}" height="${size}" class="shrink-0">${shape}${crack}</svg>`;
+}
+
+function svgAssembledPC(pc, size = 110) {
+  const st = pc.status || { ok: false, brokenCount: 0 };
+  const ready = st.ok;
+  const hasBroken = st.brokenCount > 0;
+  const glow = hasBroken ? '#ef4444' : ready ? '#38bdf8' : '#64748b';
+  const tier = pc.maxTier || 1;
+  const rgb = tier >= 4 ? '#f43f5e' : tier >= 3 ? '#38bdf8' : '#34d399';
+
+  return `
+  <svg viewBox="0 0 120 120" width="${size}" height="${size}" class="overflow-visible">
+    <rect x="26" y="10" width="68" height="98" rx="8" fill="#0f172a" stroke="${glow}" stroke-width="3"/>
+    <rect x="33" y="18" width="54" height="72" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    ${ready ? `
+      <circle cx="48" cy="34" r="9" fill="none" stroke="${rgb}" stroke-width="2.5"/>
+      <circle cx="48" cy="56" r="9" fill="none" stroke="${rgb}" stroke-width="2.5"/>
+      <rect x="40" y="70" width="40" height="10" rx="2" fill="${rgb}" opacity="0.85"/>
+      <circle cx="72" cy="35" r="7" fill="#38bdf8" opacity="0.7"/>
+    ` : `
+      <text x="60" y="56" text-anchor="middle" fill="${hasBroken ? '#f87171' : '#94a3b8'}" font-size="11" font-weight="900">
+        ${hasBroken ? '破損停止' : '未完成'}
+      </text>
+    `}
+    <circle cx="42" cy="99" r="3" fill="${ready ? '#4ade80' : hasBroken ? '#ef4444' : '#475569'}"/>
+    <rect x="52" y="96" width="32" height="6" rx="2" fill="#334155"/>
+  </svg>`;
+}
+
+/* ============================================================================
+   4. HARDWARE CATALOG (2027 - 2037 GENERATIONAL PROGRESSION)
+============================================================================ */
+const PART_CATEGORIES = [
+  { key: 'cpu',    label: 'CPU' },
+  { key: 'cooler', label: 'CPUクーラー' },
+  { key: 'mobo',   label: 'マザーボード' },
+  { key: 'ram',    label: 'メモリ' },
+  { key: 'gpu',    label: 'グラフィックボード' },
+  { key: 'ssd',    label: 'ストレージ' },
+  { key: 'psu',    label: '電源ユニット' },
+  { key: 'case',   label: 'PCケース' },
+  { key: 'os',     label: 'OS' }
+];
+
+const CATALOG = [
+  // --- CPU ---
+  { id: 'cpu_1', cat: 'cpu', name: 'Core i5-14400F 中古世代', socket: 'LGA1700', bench: 2200, watt: 65,  price: 16000, dur: 110, year: 2027, tier: 1 },
+  { id: 'cpu_2', cat: 'cpu', name: 'Ryzen 5 7600',            socket: 'AM5',     bench: 3200, watt: 65,  price: 24000, dur: 120, year: 2027, tier: 2 },
+  { id: 'cpu_3', cat: 'cpu', name: 'Core Ultra 7 265K',       socket: 'LGA1851', bench: 5400, watt: 125, price: 46000, dur: 135, year: 2027, tier: 3 },
+  { id: 'cpu_4', cat: 'cpu', name: 'Ryzen 7 9800X3D',         socket: 'AM5',     bench: 6800, watt: 120, price: 64000, dur: 145, year: 2027, tier: 3 },
+  { id: 'cpu_5', cat: 'cpu', name: 'Ryzen 9 11950X (2029)',   socket: 'AM6',     bench: 11500,watt: 170, price: 88000, dur: 175, year: 2029, tier: 4 },
+  { id: 'cpu_6', cat: 'cpu', name: 'Core Nova 9 490K (2031)', socket: 'LGA1954', bench: 17500,watt: 190, price: 118000,dur: 210, year: 2031, tier: 4 },
+  { id: 'cpu_7', cat: 'cpu', name: 'Ryzen AI-X 13950X3D',     socket: 'AM6',     bench: 24000,watt: 180, price: 148000,dur: 250, year: 2033, tier: 5 },
+  { id: 'cpu_8', cat: 'cpu', name: 'QuantumCore Q9-2035',     socket: 'Q-SOC',   bench: 33000,watt: 210, price: 195000,dur: 300, year: 2035, tier: 5 },
+
+  // --- CPU COOLER ---
+  { id: 'col_1', cat: 'cooler', name: 'リテール空冷クーラー',        cool: 0.04, bench: 100,  watt: 5,  price: 2500,  dur: 100, year: 2027, tier: 1 },
+  { id: 'col_2', cat: 'cooler', name: 'サイドフロー大型空冷虎徹Z',   cool: 0.10, bench: 400,  watt: 8,  price: 5800,  dur: 125, year: 2027, tier: 2 },
+  { id: 'col_3', cat: 'cooler', name: '240mm簡易水冷 AuraCool',     cool: 0.17, bench: 900,  watt: 15, price: 13500, dur: 150, year: 2027, tier: 3 },
+  { id: 'col_4', cat: 'cooler', name: '360mm液晶簡易水冷 Frost360', cool: 0.24, bench: 1600, watt: 22, price: 26000, dur: 190, year: 2029, tier: 4 },
+  { id: 'col_5', cat: 'cooler', name: 'ペルチェハイブリッド冷却改',  cool: 0.30, bench: 2500, watt: 35, price: 42000, dur: 240, year: 2032, tier: 5 },
+  { id: 'col_6', cat: 'cooler', name: '極低温液体窒素循環ユニット',  cool: 0.36, bench: 3800, watt: 50, price: 68000, dur: 295, year: 2035, tier: 5 },
+
+  // --- MOTHERBOARD ---
+  { id: 'mb_1', cat: 'mobo', name: 'H610M エントリーボード',     socket: 'LGA1700', ramType: 'DDR5', bench: 300,  watt: 25, price: 11000, dur: 110, year: 2027, tier: 1 },
+  { id: 'mb_2', cat: 'mobo', name: 'B650M Gaming WiFi',          socket: 'AM5',     ramType: 'DDR5', bench: 700,  watt: 30, price: 19000, dur: 125, year: 2027, tier: 2 },
+  { id: 'mb_3', cat: 'mobo', name: 'Z890 AORUS ELITE',           socket: 'LGA1851', ramType: 'DDR5', bench: 1300, watt: 40, price: 34000, dur: 150, year: 2027, tier: 3 },
+  { id: 'mb_4', cat: 'mobo', name: 'X970E Taichi Neural (2029)', socket: 'AM6',     ramType: 'DDR6', bench: 2400, watt: 45, price: 48000, dur: 185, year: 2029, tier: 4 },
+  { id: 'mb_5', cat: 'mobo', name: 'Z1190 ROG MAXIMUS (2031)',   socket: 'LGA1954', ramType: 'DDR6', bench: 3600, watt: 55, price: 65000, dur: 225, year: 2031, tier: 4 },
+  { id: 'mb_6', cat: 'mobo', name: 'Q990 Quantum Link (2035)',   socket: 'Q-SOC',   ramType: 'DDR7', bench: 5500, watt: 65, price: 89000, dur: 285, year: 2035, tier: 5 },
+
+  // --- MEMORY ---
+  { id: 'ram_1', cat: 'ram', name: 'DDR5-4800 16GB (8GB×2)',   ramType: 'DDR5', bench: 400,  watt: 8,  price: 7500,  dur: 115, year: 2027, tier: 1 },
+  { id: 'ram_2', cat: 'ram', name: 'DDR5-6000 32GB RGB',       ramType: 'DDR5', bench: 1100, watt: 12, price: 15500, dur: 135, year: 2027, tier: 2 },
+  { id: 'ram_3', cat: 'ram', name: 'DDR5-7200 64GB OC',        ramType: 'DDR5', bench: 2100, watt: 16, price: 29000, dur: 165, year: 2027, tier: 3 },
+  { id: 'ram_4', cat: 'ram', name: 'DDR6-9600 64GB (2029)',    ramType: 'DDR6', bench: 3800, watt: 18, price: 42000, dur: 200, year: 2029, tier: 4 },
+  { id: 'ram_5', cat: 'ram', name: 'DDR6-12000 128GB (2032)',  ramType: 'DDR6', bench: 6000, watt: 24, price: 64000, dur: 245, year: 2032, tier: 5 },
+  { id: 'ram_6', cat: 'ram', name: 'DDR7-16000 256GB Optical', ramType: 'DDR7', bench: 9000, watt: 28, price: 92000, dur: 295, year: 2035, tier: 5 },
+
+  // --- GPU ---
+  { id: 'gpu_1', cat: 'gpu', name: 'RTX 3060 12GB (定番中古)',    bench: 2400,  watt: 170, price: 26000,  dur: 110, year: 2027, tier: 1 },
+  { id: 'gpu_2', cat: 'gpu', name: 'RTX 4060 Ti 8GB',            bench: 4500,  watt: 160, price: 44000,  dur: 120, year: 2027, tier: 2 },
+  { id: 'gpu_3', cat: 'gpu', name: 'RTX 5070 12GB GDDR7',        bench: 8800,  watt: 250, price: 82000,  dur: 145, year: 2027, tier: 3 },
+  { id: 'gpu_4', cat: 'gpu', name: 'RTX 5080 16GB OC',           bench: 14500, watt: 360, price: 158000, dur: 175, year: 2027, tier: 4 },
+  { id: 'gpu_5', cat: 'gpu', name: 'RTX 6070 Ti 16GB (2029)',    bench: 21000, watt: 300, price: 135000, dur: 205, year: 2029, tier: 4 },
+  { id: 'gpu_6', cat: 'gpu', name: 'RTX 6090 32GB AI-Core',      bench: 32000, watt: 480, price: 285000, dur: 245, year: 2029, tier: 5 },
+  { id: 'gpu_7', cat: 'gpu', name: 'RTX 7080 24GB (2032)',       bench: 41000, watt: 380, price: 220000, dur: 270, year: 2032, tier: 5 },
+  { id: 'gpu_8', cat: 'gpu', name: 'NeuralTensor RTX-8090 48GB', bench: 56000, watt: 520, price: 380000, dur: 320, year: 2035, tier: 5 },
+
+  // --- STORAGE ---
+  { id: 'ssd_1', cat: 'ssd', name: 'NVMe Gen4 SSD 500GB',     bench: 300,  watt: 5,  price: 5500,  dur: 115, year: 2027, tier: 1 },
+  { id: 'ssd_2', cat: 'ssd', name: 'NVMe Gen4 高速SSD 1TB',   bench: 750,  watt: 7,  price: 11000, dur: 135, year: 2027, tier: 2 },
+  { id: 'ssd_3', cat: 'ssd', name: 'NVMe Gen5 爆速SSD 2TB',   bench: 1600, watt: 11, price: 24000, dur: 165, year: 2027, tier: 3 },
+  { id: 'ssd_4', cat: 'ssd', name: 'NVMe Gen6 4TB (2030)',    bench: 3000, watt: 13, price: 39000, dur: 210, year: 2030, tier: 4 },
+  { id: 'ssd_5', cat: 'ssd', name: '光量子ホログラムSSD 8TB',  bench: 5200, watt: 15, price: 62000, dur: 275, year: 2034, tier: 5 },
+
+  // --- PSU ---
+  { id: 'psu_1', cat: 'psu', name: '550W Bronze 電源',          supply: 550,  bench: 150,  watt: 0, price: 6200,  dur: 115, year: 2027, tier: 1 },
+  { id: 'psu_2', cat: 'psu', name: '750W Gold フルモジュラー',  supply: 750,  bench: 450,  watt: 0, price: 13500, dur: 135, year: 2027, tier: 2 },
+  { id: 'psu_3', cat: 'psu', name: '1000W Platinum ATX3.1',     supply: 1000, bench: 950,  watt: 0, price: 24000, dur: 175, year: 2027, tier: 3 },
+  { id: 'psu_4', cat: 'psu', name: '1300W Titanium AI電源(2030)',supply: 1300, bench: 1800, watt: 0, price: 38000, dur: 230, year: 2030, tier: 4 },
+  { id: 'psu_5', cat: 'psu', name: '1600W 超伝導デジタル電源',  supply: 1600, bench: 2800, watt: 0, price: 56000, dur: 295, year: 2034, tier: 5 },
+
+  // --- PC CASE ---
+  { id: 'cas_1', cat: 'case', name: 'シンプル黒ミニタワー',       protect: 0.04, bench: 100,  watt: 5,  price: 4800,  dur: 120, year: 2027, tier: 1 },
+  { id: 'cas_2', cat: 'case', name: '白ピラーレスRGBケース',      protect: 0.08, bench: 500,  watt: 12, price: 9800,  dur: 145, year: 2027, tier: 2 },
+  { id: 'cas_3', cat: 'case', name: '高エアフローメッシュPro',    protect: 0.15, bench: 1100, watt: 15, price: 17500, dur: 180, year: 2027, tier: 3 },
+  { id: 'cas_4', cat: 'case', name: 'デュアルチャンバー防振装甲', protect: 0.22, bench: 2100, watt: 20, price: 29000, dur: 235, year: 2030, tier: 4 },
+  { id: 'cas_5', cat: 'case', name: 'カーボン電磁シールド筐体',   protect: 0.28, bench: 3400, watt: 25, price: 48000, dur: 295, year: 2034, tier: 5 },
+
+  // --- OS ---
+  { id: 'os_1', cat: 'os', name: 'Windows 11 Home パッケージ版',     bench: 300,  watt: 0, price: 16500, dur: 999, year: 2027, tier: 1 },
+  { id: 'os_2', cat: 'os', name: 'Windows 11 Pro ワークステーション', bench: 800,  watt: 0, price: 24500, dur: 999, year: 2027, tier: 2 },
+  { id: 'os_3', cat: 'os', name: 'Windows 12 AI Edition (2028)',     bench: 2200, watt: 0, price: 28000, dur: 999, year: 2028, tier: 3 },
+  { id: 'os_4', cat: 'os', name: 'NeuralOS Studio 2031',              bench: 4800, watt: 0, price: 34000, dur: 999, year: 2031, tier: 4 },
+  { id: 'os_5', cat: 'os', name: 'QuantumOS Ultimate 2034',           bench: 8500, watt: 0, price: 42000, dur: 999, year: 2034, tier: 5 }
+];
+
+function getSpec(specId) {
+  return CATALOG.find(x => x.id === specId) || CATALOG[0];
+}
+
+/* ============================================================================
+   5. TOURNAMENT RANKS (E -> S)
+============================================================================ */
+const RANKS = [
+  {
+    id: 'E', name: 'Eランク・町内AIカップ', minBench: 2200, stress: 3.5,
+    prizes: [28000, 16000, 11000, 8000, 6000, 4500, 3500, 2500, 2000, 1500],
+    rivalDurRange: [45, 72],
+    desc: '入門向け大会！安価な中古完成品PCでも出場＆好勝負ができる！'
+  },
+  {
+    id: 'D', name: 'Dランク・秋葉原ルーキー戦', minBench: 8500, stress: 11,
+    prizes: [55000, 32000, 20000, 14000, 10000, 7500, 5500, 4000, 3000, 2000],
+    rivalDurRange: [105, 138],
+    desc: 'ミドル級への登竜門。冷却と電源の耐久度が試される。'
+  },
+  {
+    id: 'C', name: 'Cランク・関東電脳リーグ', minBench: 18000, stress: 18,
+    prizes: [120000, 70000, 45000, 30000, 22000, 16000, 12000, 9000, 6000, 4000],
+    rivalDurRange: [135, 175],
+    desc: '中堅ビルダーが集う激戦区。簡易水冷や高品質電源が有効。'
+  },
+  {
+    id: 'B', name: 'Bランク・ジャパンAIマスターズ', minBench: 32000, stress: 25,
+    prizes: [260000, 150000, 95000, 65000, 45000, 32000, 24000, 18000, 12000, 8000],
+    rivalDurRange: [175, 220],
+    desc: '次世代世代パーツが飛び交うハイレベル大会！'
+  },
+  {
+    id: 'A', name: 'Aランク・アジア電脳グランプリ', minBench: 52000, stress: 33,
+    prizes: [550000, 320000, 200000, 140000, 95000, 68000, 50000, 36000, 25000, 15000],
+    rivalDurRange: [215, 265],
+    desc: 'トップ層のみが立てる舞台。高耐久パーツの厳選が必須！'
+  },
+  {
+    id: 'S', name: 'Sランク・ワールドAIチャンピオンシップ', minBench: 78000, stress: 42,
+    prizes: [1500000, 800000, 500000, 350000, 250000, 180000, 130000, 90000, 60000, 40000],
+    rivalDurRange: [260, 315],
+    desc: '最高峰の頂上決戦！優勝すればゲームクリア達成！'
+  }
+];
+
+/* ============================================================================
+   6. 7 ONLINE SHOPS & MARKETPLACES CONFIGURATION
+============================================================================ */
+const SHOPS = [
+  { id: 'flea1', type: 'flea', name: 'フリマ「メルパソ」', tag: 'フリマ①', desc: '出品数最多！掘り出し物からジャンクまで何でも揃う', color: 'from-rose-500 to-red-600' },
+  { id: 'flea2', type: 'flea', name: 'フリマ「オクパソ」', tag: 'フリマ②', desc: 'マニア向けパーツセットや自作PCの出品が豊富', color: 'from-amber-500 to-orange-600' },
+  { id: 'flea3', type: 'flea', name: 'フリマ「フリパソ」', tag: 'フリマ③', desc: 'まとめ買い割引が狙い目の穴場フリマアプリ', color: 'from-pink-500 to-fuchsia-600' },
+  { id: 'used1', type: 'used', name: '中古PC通販「中古工房」', tag: '中古通販', desc: '中古PC・中古パーツ専門。たまにタイムセール開催！', color: 'from-teal-500 to-emerald-600' },
+  { id: 'new1',  type: 'new',  name: 'PC通販「電脳堂」', tag: '新品①', desc: '最新パーツ＆OSが充実！BTOカスタム注文も可能', color: 'from-sky-500 to-blue-600' },
+  { id: 'new2',  type: 'new',  name: 'PC通販「パソパラ」', tag: '新品②', desc: 'ゲーミングBTOと高耐久パーツに強い老舗通販', color: 'from-indigo-500 to-violet-600' },
+  { id: 'new3',  type: 'new',  name: 'PC通販「PCベース」', tag: '新品③', desc: 'コスパ重視の新品パーツ＆週末セールが魅力', color: 'from-cyan-500 to-teal-600' }
+];
+
+const SELLERS = ['あきば工房', 'ジャンク王タカシ', 'パーツ沼の民', '白PCビルダー', '格安放出マン', '電脳リサイクル'];
+
+/* ============================================================================
+   7. MAIN APPLICATION STATE & GAME LOGIC
+============================================================================ */
+const App = (() => {
+  const SAVE_KEY = 'pasokon_battle_save_v2';
+
+  let state = null;
+  let currentTab = 'home';
+  let selectedPcIdx = 0;
+  let selectedShopId = 'flea1';
+  let shopSubMode = 'browse';
+  let btoDraft = {};
+  let fleaDraft = { selectedUids: [], price: 15000 };
+  let battleSelectedPcIdx = 0;
+
+  // ADV state
+  let advMode = false;
+  let advQueue = [];
+  let advIdx = 0;
+  let advTimer = null;
+  let advFull = '';
+  let advDone = false;
+  let advDoneCb = null;
+
+  // Arena state
+  let inArena = false;
+  let arenaTimer = null;
+
+  function createInitialState() {
+    return {
+      year: 2027,
+      month: 1,
+      week: 1,
+      totalWeeks: 0,
+      age: 40,
+      money: 100000,
+      nextUid: 1,
+      inventory: [],
+      pcs: [{ id: 1, name: '次郎1号機', parts: {} }],
+      deliveries: [],
+      listings: [],
+      market: {},
+      fleaLoyalty: { flea1: 0, flea2: 0, flea3: 0 },
+      sellerLoyalty: {},
+      clearedRanks: { E: false, D: false, C: false, B: false, A: false, S: false },
+      flags: {
+        seenOpening: false,
+        seenFirstPc: false,
+        seenFirstBattle: false,
+        announcedYears: {}
+      },
+      logs: ['2027年1月1週：次郎（40歳・無職）のパソコンバトル挑戦が始まった！']
+    };
+  }
+
+  function addLog(msg) {
+    if (!state) return;
+    state.logs.unshift(`[${state.year}/${state.month}月${state.week}週] ${msg}`);
+    if (state.logs.length > 25) state.logs.pop();
+  }
+
+  function makePartInstance(specId, condition = 'new', customDurRatio = null) {
+    const spec = getSpec(specId);
+    const maxDur = spec.dur;
+    let dur = maxDur;
+    if (spec.cat === 'os') {
+      dur = 999;
+    } else if (condition === 'used') {
+      const ratio = customDurRatio !== null ? customDurRatio : (0.52 + Math.random() * 0.38);
+      dur = Math.max(8, Math.round(maxDur * ratio));
+    } else if (condition === 'junk') {
+      dur = Math.random() < 0.65 ? 0 : Math.max(1, Math.round(maxDur * (0.08 + Math.random() * 0.22)));
+    }
+    return {
+      uid: state.nextUid++,
+      specId,
+      dur,
+      maxDur,
+      condition
+    };
+  }
+
+  function evaluatePC(pc) {
+    const p = pc.parts || {};
+    const required = ['cpu', 'cooler', 'mobo', 'ram', 'gpu', 'ssd', 'psu', 'case', 'os'];
+    const missing = required.filter(k => !p[k]);
+    const issues = [];
+    let bench = 0;
+    let totalWatt = 0;
+    let supplyWatt = 0;
+    let brokenCount = 0;
+    let maxTier = 1;
+
+    required.forEach(k => {
+      const item = p[k];
+      if (!item) return;
+      const spec = getSpec(item.specId);
+      if (!spec) return;
+      if (spec.tier > maxTier) maxTier = spec.tier;
+      if (item.dur <= 0 && spec.cat !== 'os') {
+        brokenCount++;
+        issues.push(`${spec.name}が破損(耐久0)`);
+      } else {
+        bench += spec.bench;
+      }
+      totalWatt += (spec.watt || 0);
+      if (spec.cat === 'psu') supplyWatt = spec.supply || 0;
+    });
+
+    if (missing.length > 0) {
+      const labels = missing.map(k => PART_CATEGORIES.find(c => c.key === k).label).join('・');
+      issues.push(`未装着: ${labels}`);
+    }
+    if (p.cpu && p.mobo) {
+      const cs = getSpec(p.cpu.specId).socket;
+      const ms = getSpec(p.mobo.specId).socket;
+      if (cs !== ms) issues.push(`ソケット不一致(${cs} ≠ ${ms})`);
+    }
+    if (p.mobo && p.ram) {
+      const mr = getSpec(p.mobo.specId).ramType;
+      const rr = getSpec(p.ram.specId).ramType;
+      if (mr !== rr) issues.push(`メモリ規格不一致(${mr} ≠ ${rr})`);
+    }
+    if (p.psu && totalWatt > supplyWatt) {
+      issues.push(`電源容量不足(消費${totalWatt}W > 供給${supplyWatt}W)`);
+    }
+
+    const ok = issues.length === 0;
+    pc.status = { ok, bench, totalWatt, supplyWatt, brokenCount, issues };
+    pc.maxTier = maxTier;
+    return pc.status;
+  }
+
+  function createAutoCompleteBuild(maxTier, condition) {
+    const avail = CATALOG.filter(s => s.year <= state.year && s.tier <= maxTier);
+    const pickBest = (cat, filterFn = () => true) => {
+      const list = avail.filter(s => s.cat === cat && filterFn(s));
+      return list[list.length - 1] || CATALOG.find(s => s.cat === cat);
+    };
+
+    const cpu = pickBest('cpu');
+    const mobo = pickBest('mobo', m => m.socket === cpu.socket) || pickBest('mobo');
+    const ram = pickBest('ram', r => r.ramType === mobo.ramType) || pickBest('ram');
+    const gpu = pickBest('gpu');
+    const cooler = pickBest('cooler');
+    const ssd = pickBest('ssd');
+    const pcCase = pickBest('case');
+    const os = pickBest('os');
+    const needWatt = cpu.watt + gpu.watt + mobo.watt + ram.watt + cooler.watt + ssd.watt + pcCase.watt;
+    const psu = avail.find(s => s.cat === 'psu' && s.supply >= needWatt) || pickBest('psu');
+
+    const durRatio = condition === 'new' ? 1 : (0.62 + Math.random() * 0.28);
+    return [cpu, cooler, mobo, ram, gpu, ssd, psu, pcCase, os].map(s => ({
+      specId: s.id,
+      condition,
+      durRatio
+    }));
+  }
+
+  /* ---------------------- MARKET GENERATION ---------------------- */
+  function generateWeeklyMarket() {
+    const availSpecs = CATALOG.filter(s => s.year <= state.year);
+    const nonOsSpecs = availSpecs.filter(s => s.cat !== 'os');
+
+    SHOPS.forEach(shop => {
+      const items = [];
+      const hasSale = (shop.type === 'used' || shop.type === 'new') && Math.random() < 0.45;
+
+      if (shop.type === 'new') {
+        availSpecs.forEach(spec => {
+          const fluct = 0.94 + Math.random() * 0.14;
+          const isSaleItem = hasSale && Math.random() < 0.25;
+          const saleMult = isSaleItem ? 0.80 : 1.0;
+          const price = Math.round((spec.price * fluct * saleMult) / 100) * 100;
+          items.push({
+            id: `${shop.id}_${spec.id}_${Math.random().toString(36).slice(2, 6)}`,
+            kind: 'part',
+            title: spec.name,
+            parts: [{ specId: spec.id, condition: 'new', durRatio: 1 }],
+            price,
+            isSale: isSaleItem,
+            seller: shop.name
+          });
+        });
+
+        [1, 2, 3].forEach(idx => {
+          const tierTarget = Math.min(5, idx + Math.floor((state.year - 2027) / 3));
+          const build = createAutoCompleteBuild(tierTarget, 'new');
+          const sumPrice = build.reduce((acc, b) => acc + getSpec(b.specId).price, 0);
+          const isSaleItem = hasSale && idx === 1;
+          const price = Math.round((sumPrice * (isSaleItem ? 0.85 : 1.04)) / 100) * 100;
+          items.unshift({
+            id: `${shop.id}_pc_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+            kind: 'pc',
+            title: `【新品BTO完成品】${shop.tag}モデル Lv.${tierTarget}`,
+            parts: build,
+            price,
+            isSale: isSaleItem,
+            seller: shop.name
+          });
+        });
+      } else if (shop.type === 'used') {
+        for (let i = 0; i < 16; i++) {
+          const spec = nonOsSpecs[Math.floor(Math.random() * nonOsSpecs.length)];
+          const durRatio = 0.50 + Math.random() * 0.40;
+          const isSaleItem = hasSale && Math.random() < 0.3;
+          const price = Math.round((spec.price * (0.44 + durRatio * 0.34) * (isSaleItem ? 0.78 : 1)) / 100) * 100;
+          items.push({
+            id: `${shop.id}_u_${i}_${Math.random().toString(36).slice(2, 6)}`,
+            kind: 'part',
+            title: `【中古】${spec.name}`,
+            parts: [{ specId: spec.id, condition: 'used', durRatio }],
+            price: Math.max(1000, price),
+            isSale: isSaleItem,
+            seller: shop.name
+          });
+        }
+
+        const usedPresets = [
+          { tier: 1, label: '【格安中古PC】入門事務＆Eランク練習機', priceRange: [15000, 21000] },
+          { tier: 1, label: '【中古再生PC】コスパ重視エントリー機', priceRange: [22000, 29000] },
+          { tier: 2, label: '【中古完成品】お手頃ゲーミング構成', priceRange: [30000, 38000] },
+          { tier: Math.min(4, 2 + Math.floor((state.year - 2027) / 2.5)), label: '【中古整備済PC】中堅バランスモデル', priceRange: [45000, 72000] }
+        ];
+        usedPresets.slice().reverse().forEach((preset, idx) => {
+          const build = createAutoCompleteBuild(preset.tier, 'used');
+          const isSaleItem = hasSale && idx >= 2;
+          const [pMin, pMax] = preset.priceRange;
+          const rawP = pMin + Math.random() * (pMax - pMin);
+          const price = Math.round((rawP * (isSaleItem ? 0.82 : 1)) / 100) * 100;
+          items.unshift({
+            id: `${shop.id}_upc_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+            kind: 'pc',
+            title: preset.label,
+            parts: build,
+            price,
+            isSale: isSaleItem,
+            seller: shop.name
+          });
+        });
+      } else if (shop.type === 'flea') {
+        const cheapPrebuiltTitles = [
+          '【格安中古PC】組済すぐ遊べる入門機',
+          '【中古完成品PC】低スペ格安・動作確認済',
+          '【組済中古PC】お手頃スタートモデル'
+        ];
+        for (let c = 0; c < 2; c++) {
+          const seller = SELLERS[Math.floor(Math.random() * SELLERS.length)];
+          const build = createAutoCompleteBuild(1, 'used');
+          const price = Math.round((15000 + Math.random() * 17000) / 500) * 500;
+          items.unshift({
+            id: `${shop.id}_fcheap_${c}_${Math.random().toString(36).slice(2, 6)}`,
+            kind: 'pc',
+            title: cheapPrebuiltTitles[(c + state.totalWeeks) % cheapPrebuiltTitles.length],
+            parts: build,
+            price,
+            seller
+          });
+        }
+
+        for (let i = 0; i < 12; i++) {
+          const seller = SELLERS[Math.floor(Math.random() * SELLERS.length)];
+          const roll = Math.random();
+          if (roll < 0.45) {
+            const spec = nonOsSpecs[Math.floor(Math.random() * nonOsSpecs.length)];
+            const isJunk = Math.random() < 0.20;
+            const durRatio = isJunk ? 0 : (0.45 + Math.random() * 0.45);
+            const rawPrice = isJunk ? spec.price * 0.16 : spec.price * (0.38 + durRatio * 0.35);
+            items.push({
+              id: `${shop.id}_f_${i}_${Math.random().toString(36).slice(2, 6)}`,
+              kind: 'part',
+              title: `${isJunk ? '【ジャンク/現状品】' : '【中古】'}${spec.name}`,
+              parts: [{ specId: spec.id, condition: isJunk ? 'junk' : 'used', durRatio }],
+              price: Math.max(500, Math.round(rawPrice / 100) * 100),
+              seller
+            });
+          } else if (roll < 0.72) {
+            const tierTarget = Math.min(4, 1 + Math.floor((state.year - 2027) / 3));
+            const full = createAutoCompleteBuild(tierTarget, 'used');
+            const bundle = full.filter(x => ['cpu', 'mobo', 'ram'].includes(getSpec(x.specId).cat));
+            const base = bundle.reduce((a, b) => a + getSpec(b.specId).price * 0.46, 0);
+            items.push({
+              id: `${shop.id}_fb_${i}_${Math.random().toString(36).slice(2, 6)}`,
+              kind: 'bundle',
+              title: '【3点セット】CPU+マザボ+メモリお得組',
+              parts: bundle,
+              price: Math.max(3000, Math.round(base / 100) * 100),
+              seller
+            });
+          } else {
+            const incomplete = Math.random() < 0.42;
+            const tierTarget = Math.min(4, 1 + Math.floor((state.year - 2027) / 3));
+            let build = createAutoCompleteBuild(tierTarget, 'used');
+            if (incomplete) {
+              const dropCats = Math.random() < 0.5 ? ['gpu', 'os'] : ['ssd', 'ram'];
+              build = build.filter(b => !dropCats.includes(getSpec(b.specId).cat));
+            }
+            const base = build.reduce((a, b) => a + getSpec(b.specId).price * 0.48, 0);
+            items.push({
+              id: `${shop.id}_fpc_${i}_${Math.random().toString(36).slice(2, 6)}`,
+              kind: incomplete ? 'incomplete_pc' : 'pc',
+              title: incomplete ? '【パーツ欠品PC】ベース機(要追加パーツ)' : '【中古自作PC】即戦力ゲーミング構成',
+              parts: build,
+              price: Math.max(5000, Math.round(base / 100) * 100),
+              seller
+            });
+          }
+        }
+      }
+
+      state.market[shop.id] = { hasSale, items };
+    });
+  }
+
+  /* ---------------------- TIME PROGRESSION & EVENTS ---------------------- */
+  function advanceWeek() {
+    state.totalWeeks++;
+    state.week++;
+    if (state.week > 4) {
+      state.week = 1;
+      state.month++;
+      if (state.month > 12) {
+        state.month = 1;
+        state.year++;
+      }
+    }
+
+    // 10-year limit: 2037 Year 1 Month 1 Week -> Time Up Bad End
+    if (state.year >= 2037 && state.month === 1 && state.week === 1) {
+      writeSave();
+      triggerTimeUpBadEnd();
+      return;
+    }
+
+    // Deliver in-transit orders ordered last week
+    const arrivedMessages = [];
+    if (Array.isArray(state.deliveries) && state.deliveries.length > 0) {
+      state.deliveries.forEach(del => {
+        const createdParts = del.parts.map(p => makePartInstance(p.specId, p.condition, p.durRatio));
+        if ((del.kind === 'pc' || del.kind === 'incomplete_pc' || del.kind === 'bto_pc') && state.pcs.length < 6) {
+          const newPc = {
+            id: Date.now() + Math.random(),
+            name: del.pcName || `届いたPC${state.pcs.length + 1}号`,
+            parts: {}
+          };
+          createdParts.forEach(pt => {
+            const cat = getSpec(pt.specId).cat;
+            if (!newPc.parts[cat]) {
+              newPc.parts[cat] = pt;
+            } else {
+              state.inventory.push(pt);
+            }
+          });
+          evaluatePC(newPc);
+          state.pcs.push(newPc);
+          arrivedMessages.push(`📦 配送到着！「${del.title}」が届き、${newPc.name}として部屋に配置された！`);
+        } else {
+          createdParts.forEach(pt => state.inventory.push(pt));
+          arrivedMessages.push(`📦 配送到着！「${del.title}」(${createdParts.length}点)が手持ちパーツに追加された！`);
+        }
+      });
+      state.deliveries = [];
+    }
+
+    // Monthly Week 1 fixed income: +40,000 yen
+    let monthlySalaryMsg = '';
+    if (state.week === 1) {
+      const salary = 40000;
+      state.money += salary;
+      monthlySalaryMsg = `💴 毎月1週目の固定収入 +¥${salary.toLocaleString()} を受け取った！`;
+      addLog(monthlySalaryMsg);
+    }
+
+    arrivedMessages.forEach(m => addLog(m));
+
+    // Resolve Jiro's Flea Market Listings
+    const soldLogs = [];
+    state.listings = state.listings.filter(lst => {
+      lst.weeksListed++;
+      const fairValue = lst.items.reduce((acc, it) => {
+        const sp = getSpec(it.specId);
+        const ratio = sp.cat === 'os' ? 0.5 : (it.dur <= 0 ? 0.14 : (0.35 + (it.dur / it.maxDur) * 0.45));
+        return acc + sp.price * ratio;
+      }, 0);
+      const ratioToFair = lst.price / Math.max(500, fairValue);
+      let sellChance = 0.01;
+      if (ratioToFair <= 0.85) sellChance = 0.85;
+      else if (ratioToFair <= 1.05) sellChance = 0.55;
+      else if (ratioToFair <= 1.25) sellChance = 0.25;
+      else if (ratioToFair <= 1.45) sellChance = 0.08;
+
+      if (Math.random() < sellChance) {
+        const fee = Math.round(lst.price * 0.10);
+        const profit = lst.price - fee;
+        state.money += profit;
+        soldLogs.push(`フリマ出品「${lst.title}」が¥${lst.price.toLocaleString()}で売却！(手数料10%差引 +¥${profit.toLocaleString()})`);
+        return false;
+      }
+      return true;
+    });
+
+    soldLogs.forEach(m => addLog(m));
+    generateWeeklyMarket();
+    writeSave();
+
+    // Birthday Event: Every October Week 2
+    if (state.month === 10 && state.week === 2) {
+      state.age++;
+      const bonus = 15000;
+      state.money += bonus;
+      addLog(`🎂 10月2週目！次郎は${state.age}歳の誕生日を迎えた！お祝い臨時収入+¥${bonus.toLocaleString()}`);
+      writeSave();
+      startAdv([
+        { speaker: 'ナレーション', mood: 'happy', text: `${state.year}年10月2週目――今日は主人公・次郎の誕生日だ！` },
+        { speaker: `次郎（${state.age}歳）`, mood: 'happy', text: `「おおっ、俺も今日で${state.age}歳か！お腹の貫禄は増したが、髪の毛はまだまだフサフサだぜ！」` },
+        { speaker: `次郎（${state.age}歳）`, mood: 'normal', text: '「お祝いポケットマネー¥15,000も発掘したし、2037年までに必ずSランク制覇してやる！」' }
+      ], () => renderApp());
+      return;
+    }
+
+    // New Hardware Generation Announcement on Jan Week 1
+    if (state.month === 1 && state.week === 1 && !state.flags.announcedYears[state.year]) {
+      state.flags.announcedYears[state.year] = true;
+      const newReleases = CATALOG.filter(s => s.year === state.year);
+      if (newReleases.length > 0) {
+        writeSave();
+        startAdv([
+          { speaker: '電脳ニュース速報', mood: 'normal', text: `${state.year}年新春！次世代PCパーツ「${newReleases[0].name}」などが各PC通販サイトで発売開始！` },
+          { speaker: `次郎（${state.age}歳）`, mood: 'happy', text: '「おおっ、新しい世代のパーツが出たのか！上位ランク攻略に向けてチェックしなければ！」' }
+        ], () => renderApp());
+        return;
+      }
+    }
+
+    // Delivery / Salary ADV notice
+    if (monthlySalaryMsg || arrivedMessages.length > 0) {
+      const lines = [];
+      if (monthlySalaryMsg) {
+        lines.push({ speaker: '次郎', mood: 'happy', text: '「おっ！今月1週目の固定収入¥40,000が入ったぞ！少しずつでも資金を貯めていけるな！」' });
+      }
+      if (arrivedMessages.length > 0) {
+        lines.push({ speaker: '宅配便の配達員', mood: 'normal', text: `「お待たせしました！次郎さん宛ての荷物が届きましたよ！（${arrivedMessages.length}件）」` });
+        lines.push({ speaker: '次郎', mood: 'build', text: '「おおっ、注文していた品物が届いたか！さっそく確認しよう！」' });
+      }
+      AudioSys.se('buy');
+      startAdv(lines, () => renderApp());
+      return;
+    }
+
+    // Bankruptcy check
+    const totalAssetsCount =
+      state.inventory.length +
+      state.deliveries.length +
+      state.listings.length +
+      state.pcs.reduce((acc, pc) => acc + Object.keys(pc.parts || {}).length, 0);
+
+    if (state.money < 500 && totalAssetsCount === 0) {
+      triggerBankruptBadEnd();
+      return;
+    }
+
+    if (soldLogs.length > 0) {
+      AudioSys.se('buy');
+      FX.confetti();
+    }
+    renderApp();
+  }
+
+  /* ---------------------- ADV CUTSCENE ENGINE ---------------------- */
+  function startAdv(lines, onComplete) {
+    advMode = true;
+    advQueue = lines;
+    advIdx = 0;
+    advDoneCb = onComplete;
+    document.getElementById('bottom-nav').classList.add('hidden');
+    AudioSys.playBgm('adv');
+    renderAdvFrame();
+  }
+
+  function renderAdvFrame() {
+    if (advTimer) clearInterval(advTimer);
+    const line = advQueue[advIdx];
+    if (!line) {
+      advMode = false;
+      if (advDoneCb) advDoneCb();
+      return;
+    }
+
+    const main = document.getElementById('main-view');
+    main.innerHTML = `
+      <div onclick="App.nextAdv()" class="flex-1 flex flex-col justify-between p-3.5 bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950 cursor-pointer">
+        <div class="flex items-center justify-between">
+          <span class="px-2.5 py-1 rounded-lg bg-sky-500/20 border border-sky-400/40 text-sky-200 text-[11px] font-black">
+            📖 ストーリーイベント
+          </span>
+          <button type="button" onclick="event.stopPropagation(); App.skipAdv()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[11px] font-bold text-slate-300">
+            スキップ <span class="keycap">S</span>
+          </button>
+        </div>
+
+        <div class="flex-1 flex flex-col items-center justify-center my-2">
+          <div class="p-3 rounded-3xl bg-slate-800/60 border border-slate-700/80 shadow-xl anim-idle">
+            ${svgJiro(line.mood || 'normal', 150)}
+          </div>
+          <div class="mt-2 px-3 py-0.5 rounded-full bg-slate-800 border border-slate-600 text-[11px] font-bold text-slate-300">
+            次郎（${state ? state.age : 40}歳・元エンジニア志望の無職）
+          </div>
+        </div>
+
+        <div class="bg-slate-900/95 border-2 border-sky-400/75 rounded-2xl p-3.5 shadow-2xl min-h-[135px] flex flex-col justify-between">
+          <div>
+            <div class="inline-block px-2.5 py-0.5 rounded-lg bg-sky-400 text-slate-950 font-black text-xs mb-1.5">
+              ${line.speaker}
+            </div>
+            <p id="adv-box-text" class="text-sm leading-relaxed text-white font-bold"></p>
+          </div>
+          <div class="flex items-center justify-between text-[11px] text-sky-300 mt-2">
+            <span>${advIdx + 1} / ${advQueue.length}</span>
+            <span class="font-black animate-bounce">▼ タップ / Enter</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    advFull = line.text;
+    advDone = false;
+    let p = 0;
+    const el = document.getElementById('adv-box-text');
+    advTimer = setInterval(() => {
+      p++;
+      if (el) el.textContent = advFull.slice(0, p);
+      if (p % 3 === 0) AudioSys.se('blip');
+      if (p >= advFull.length) {
+        clearInterval(advTimer);
+        advTimer = null;
+        advDone = true;
+      }
+    }, 22);
+  }
+
+  function nextAdv() {
+    if (!advDone) {
+      if (advTimer) clearInterval(advTimer);
+      advTimer = null;
+      const el = document.getElementById('adv-box-text');
+      if (el) el.textContent = advFull;
+      advDone = true;
+      return;
+    }
+    AudioSys.se('click');
+    advIdx++;
+    if (advIdx >= advQueue.length) {
+      advMode = false;
+      if (advDoneCb) advDoneCb();
+    } else {
+      renderAdvFrame();
+    }
+  }
+
+  function skipAdv() {
+    if (advTimer) clearInterval(advTimer);
+    AudioSys.se('click');
+    advMode = false;
+    if (advDoneCb) advDoneCb();
+  }
+
+  function triggerOpeningAdv() {
+    startAdv([
+      { speaker: 'ナレーション', mood: 'normal', text: '2027年1月1週目。東京の片隅にあるワンルームアパートに、ひとりの男がいた。' },
+      { speaker: '次郎（40歳）', mood: 'normal', text: '「ふぅ……現在40歳、無職。体重は少し増えたが、髪の毛はまだまだフサフサだ！」' },
+      { speaker: '次郎（40歳）', mood: 'build', text: '「手元にある全財産は10万円。今はパソコン1台すら持っていないが……世界中で大ブームのAI競技『パソコンバトル』で頂点を目指す！」' },
+      { speaker: '次郎（40歳）', mood: 'happy', text: '「フリマや通販でパーツを集めて自作PCを組み、2037年1月までの10年間で最高峰『Sランク』を制覇してやるぜ！」' }
+    ], () => {
+      state.flags.seenOpening = true;
+      writeSave();
+      renderApp();
+    });
+  }
+
+  function triggerChampionEndingAdv() {
+    AudioSys.se('win');
+    FX.confetti();
+    startAdv([
+      { speaker: '実況アナウンサー', mood: 'happy', text: '『信じられない！！40代から自作PCを始めた男・次郎のマシンが、最後の1台まで稼働し続けSランク優勝だーー！！』' },
+      { speaker: `次郎（${state.age}歳）`, mood: 'happy', text: '「やった……やったぞおおお！！ボロボロになりながらも、俺の組んだパソコンが世界一になったんだ！！」' },
+      { speaker: 'ナレーション', mood: 'happy', text: '中古パーツの目利きから始まり、数々の破損と挫折を乗り越えた次郎は、伝説のPCビルダーとして名を刻んだ！' },
+      { speaker: '祝・ゲームクリア！', mood: 'happy', text: `【エンディング達成】${state.year}年${state.month}月${state.week}週（${state.age}歳）でSランク制覇！おめでとう！` }
+    ], () => {
+      FX.confetti();
+      renderApp();
+    });
+  }
+
+  function triggerTimeUpBadEnd() {
+    AudioSys.se('lose');
+    startAdv([
+      { speaker: 'ナレーション', mood: 'sad', text: '2037年1月1週目――ついに約束の10年間が経過してしまった。' },
+      { speaker: `次郎（${state.age}歳）`, mood: 'sad', text: '「くそっ……Sランクの壁は高かったか……。気づけば俺も50歳になってしまったな……」' },
+      { speaker: 'バッドエンド：10年のタイムアップ', mood: 'sad', text: 'Sランク未達成のまま2037年を迎えてしまった。タイトル画面から再挑戦しよう！' }
+    ], () => renderTitle());
+  }
+
+  function triggerBankruptBadEnd() {
+    AudioSys.se('lose');
+    startAdv([
+      { speaker: 'ナレーション', mood: 'sad', text: '資金もパーツもすべて尽き果て、パソコンを組む手段がなくなってしまった……。' },
+      { speaker: `次郎（${state.age}歳）`, mood: 'sad', text: '「パーツが全部壊れて資金もゼロか……無茶な大会出場をしすぎたな……」' },
+      { speaker: 'バッドエンド：電脳破産', mood: 'sad', text: '資金・資産が底をつきました。タイトル画面から再挑戦しよう！' }
+    ], () => renderTitle());
+  }
+
+  /* ---------------------- SAVE & MODAL SYSTEM ---------------------- */
+  function saveExists() {
+    return !!localStorage.getItem(SAVE_KEY);
+  }
+
+  function writeSave() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch (e) {
+      // Ignore storage quota errors
+    }
+  }
+
+  function loadSave() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      state = JSON.parse(raw);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function showModal(title, htmlContent, buttons) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-content').innerHTML = htmlContent;
+    const box = document.getElementById('modal-buttons');
+    box.innerHTML = '';
+    buttons.forEach(b => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = b.cls || 'px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-700 hover:bg-slate-600 text-white';
+      btn.textContent = b.label;
+      btn.onclick = () => {
+        AudioSys.se('click');
+        closeModal();
+        if (b.onClick) b.onClick();
+      };
+      box.appendChild(btn);
+    });
+    document.getElementById('modal-backdrop').classList.remove('hidden');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-backdrop').classList.add('hidden');
+  }
+
+  function confirmDeleteSave() {
+    AudioSys.se('click');
+    showModal(
+      'セーブデータの削除',
+      '保存されている進行データ・所持PC・資金をすべて削除しますか？',
+      [
+        { label: 'キャンセル', cls: 'px-3 py-2 rounded-xl text-xs font-bold bg-slate-700 text-slate-200' },
+        {
+          label: '削除する',
+          cls: 'px-3 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white',
+          onClick: () => {
+            localStorage.removeItem(SAVE_KEY);
+            state = null;
+            renderTitle();
+          }
+        }
+      ]
+    );
+  }
+
+  /* ---------------------- TITLE SCREEN ---------------------- */
+  function renderTitle() {
+    advMode = false;
+    inArena = false;
+    if (arenaTimer) clearInterval(arenaTimer);
+    document.getElementById('hud-header').classList.add('hidden');
+    document.getElementById('bottom-nav').classList.add('hidden');
+    AudioSys.playBgm('room');
+
+    const hasSave = saveExists();
+    const main = document.getElementById('main-view');
+    main.innerHTML = `
+      <div class="flex-1 flex flex-col justify-between p-4 bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950 text-center overflow-y-auto">
+        <div class="mt-2">
+          <span class="inline-block px-3 py-1 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-300 text-[11px] font-black tracking-wider">
+            自作PCクラフト ＆ AI耐久サバイバル競技
+          </span>
+          <h1 class="mt-2 text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-cyan-200 to-amber-300 drop-shadow">
+            パソコンバトル
+          </h1>
+          <p class="mt-1 text-xs text-slate-300">
+            2027年〜2037年の10年間で最高峰Sランクを制覇せよ！
+          </p>
+        </div>
+
+        <div class="my-2 flex flex-col items-center">
+          <div class="p-3 rounded-3xl bg-slate-800/75 border border-slate-700 shadow-2xl anim-idle">
+            ${svgJiro('happy', 150)}
+            <div class="mt-1 px-3 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-[11px] font-bold">
+              主人公：次郎（40歳・無職・太め・黒髪フサフサ）
+            </div>
+          </div>
+          <div class="mt-2.5 grid grid-cols-3 gap-1.5 w-full text-[10px] text-slate-300">
+            <div class="bg-slate-800/70 p-2 rounded-xl border border-slate-700">
+              <div class="text-sky-300 font-black">8パーツ+OS</div>
+              <div>本格自作＆BTO</div>
+            </div>
+            <div class="bg-slate-800/70 p-2 rounded-xl border border-slate-700">
+              <div class="text-amber-300 font-black">全7サイト</div>
+              <div>翌週配送＆月4万</div>
+            </div>
+            <div class="bg-slate-800/70 p-2 rounded-xl border border-slate-700">
+              <div class="text-rose-300 font-black">耐久バトル</div>
+              <div>破損＝AI停止！</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2 mb-1">
+          ${hasSave ? `
+            <button type="button" onclick="App.continueGame()" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black text-base shadow-lg active:scale-95 transition">
+              つづきから遊ぶ <span class="keycap">Enter</span>
+            </button>
+          ` : ''}
+          <button type="button" onclick="App.startNewGame()" class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-sky-400 to-indigo-500 text-slate-950 font-black text-sm shadow-lg active:scale-95 transition">
+            はじめから（2027年1月1週・資金10万円） <span class="keycap">N</span>
+          </button>
+          ${hasSave ? `
+            <button type="button" onclick="App.confirmDeleteSave()" class="w-full py-2 px-3 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-700/60 text-rose-200 text-xs font-bold">
+              セーブデータを削除する <span class="keycap">Del</span>
+            </button>
+          ` : ''}
+          <p class="text-[10px] text-slate-400">
+            スマホ：画面タップ操作 ／ PC：数字キー[1-5]・[Enter]・[M]対応
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  function startNewGame() {
+    AudioSys.init();
+    AudioSys.se('buy');
+    state = createInitialState();
+    generateWeeklyMarket();
+    writeSave();
+    triggerOpeningAdv();
+  }
+
+  function continueGame() {
+    AudioSys.init();
+    AudioSys.se('click');
+    if (loadSave()) {
+      if (!state.market || Object.keys(state.market).length === 0) generateWeeklyMarket();
+      renderApp();
+    } else {
+      startNewGame();
+    }
+  }
+
+  /* ---------------------- MAIN SHELL RENDERER ---------------------- */
+  function renderApp() {
+    if (advMode || inArena || !state) return;
+    document.getElementById('hud-header').classList.remove('hidden');
+    document.getElementById('bottom-nav').classList.remove('hidden');
+
+    document.getElementById('hud-date').textContent = `${state.year}年${state.month}月${state.week}週`;
+    document.getElementById('hud-age').textContent = `次郎(${state.age}歳)`;
+    document.getElementById('hud-money').textContent = `¥${state.money.toLocaleString()}`;
+
+    ['home', 'build', 'shop', 'flea', 'battle'].forEach(t => {
+      const btn = document.getElementById(`nav-${t}`);
+      if (!btn) return;
+      if (t === currentTab) {
+        btn.className = 'nav-btn py-1.5 rounded-xl flex flex-col items-center justify-center text-[10px] font-black bg-sky-500 text-slate-950 shadow';
+      } else {
+        btn.className = 'nav-btn py-1.5 rounded-xl flex flex-col items-center justify-center text-[10px] font-black bg-slate-800/90 text-slate-300 hover:bg-slate-700';
+      }
+    });
+
+    if (currentTab === 'home') renderHomeTab();
+    else if (currentTab === 'build') renderBuildTab();
+    else if (currentTab === 'shop') renderShopTab();
+    else if (currentTab === 'flea') renderFleaTab();
+    else if (currentTab === 'battle') renderBattleTab();
+  }
+
+  function setTab(tab) {
+    if (inArena || advMode) return;
+    AudioSys.se('click');
+    currentTab = tab;
+    if (tab === 'shop') AudioSys.playBgm('shop');
+    else AudioSys.playBgm('room');
+    renderApp();
+  }
+
+  /* ---------------------- TAB 1: HOME (JIRO'S ROOM) ---------------------- */
+  function renderHomeTab() {
+    const main = document.getElementById('main-view');
+    const remainYears = Math.max(0, 2037 - state.year);
+    const rankBadges = RANKS.map(r => {
+      const ok = state.clearedRanks[r.id];
+      return `<span class="px-2 py-0.5 rounded-md text-[10px] font-black ${ok ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400 border border-slate-700'}">${r.id}${ok ? '★' : ''}</span>`;
+    }).join('');
+
+    const pcSummaries = state.pcs.map((pc, idx) => {
+      const st = evaluatePC(pc);
+      return `
+        <div class="p-2 rounded-xl bg-slate-800/90 border ${st.ok ? 'border-emerald-500/60' : 'border-slate-700'} flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 min-w-0">
+            ${svgAssembledPC(pc, 46)}
+            <div class="min-w-0">
+              <div class="text-xs font-black text-white truncate">${pc.name}</div>
+              <div class="text-[10px] ${st.ok ? 'text-emerald-300' : 'text-amber-300'} font-bold">
+                ${st.ok ? `稼働OK / ベンチ: ${st.bench.toLocaleString()}` : st.issues[0]}
+              </div>
+            </div>
+          </div>
+          <button type="button" onclick="App.openPcInBuilder(${idx})" class="px-2.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-black shrink-0">
+            構成確認
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    main.innerHTML = `
+      <div class="flex-1 flex flex-col justify-between p-3 gap-2 overflow-y-auto text-slate-100">
+        <div class="bg-gradient-to-r from-slate-800/90 to-indigo-950/90 border border-slate-700 rounded-2xl p-2.5 flex items-center gap-2.5">
+          <div class="shrink-0 anim-idle">${svgJiro('normal', 76)}</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-black text-sky-300">次郎の作業部屋</span>
+              <span class="text-[10px] text-slate-300">残り約${remainYears}年</span>
+            </div>
+            <p class="text-[11px] text-slate-200 mt-0.5 leading-snug">
+              ${state.pcs.some(p => evaluatePC(p).ok)
+                ? '「マシンは準備万端！大会で賞金を稼ぐか、さらなる強化を狙おう！」'
+                : '「まずは通販やフリマで中古完成品PCやパーツを集めよう！毎月1週目に¥40,000の固定収入も入るぞ！」'}
+            </p>
+            <div class="mt-1.5 flex items-center gap-1 flex-wrap">
+              <span class="text-[10px] text-slate-400">制覇:</span>${rankBadges}
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="App.manualAdvanceWeek()" class="p-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-black text-xs shadow flex items-center justify-center">
+            ⏭ 次の週へ進める <span class="keycap">W</span>
+          </button>
+          <button type="button" onclick="App.manualSave()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs flex items-center justify-center">
+            💾 セーブ / タイトル <span class="keycap">Esc</span>
+          </button>
+        </div>
+
+        ${state.deliveries && state.deliveries.length > 0 ? `
+          <div class="p-2 rounded-xl bg-amber-950/60 border border-amber-400/50 text-[11px] text-amber-200">
+            <div class="font-black">🚚 配送中の注文 (${state.deliveries.length}件) — 翌週到着！</div>
+            ${state.deliveries.map(d => `<div class="text-[10px] text-amber-100/90 truncate">・${d.title} (${d.shopName})</div>`).join('')}
+          </div>
+        ` : ''}
+
+        <div class="flex flex-col gap-1.5">
+          <div class="flex items-center justify-between text-xs font-black text-slate-300">
+            <span>所持パソコン (${state.pcs.length}台) / 手持ちパーツ (${state.inventory.length}個)</span>
+            <button type="button" onclick="App.addNewPcSlot()" class="text-[10px] px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-sky-300">+ 新規PC枠</button>
+          </div>
+          ${pcSummaries}
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-2 flex-1 min-h-[90px] overflow-y-auto">
+          <div class="text-[10px] font-black text-slate-400 mb-1">📜 活動ログ</div>
+          <div class="flex flex-col gap-1">
+            ${state.logs.map(l => `<div class="text-[10px] text-slate-300 border-b border-slate-800/70 pb-0.5">${l}</div>`).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function manualAdvanceWeek() {
+    AudioSys.se('week');
+    addLog('1週間じっくり市場動向をチェックした。');
+    advanceWeek();
+  }
+
+  function manualSave() {
+    writeSave();
+    AudioSys.se('click');
+    showModal(
+      'セーブ完了',
+      '現在の進行状況をセーブしました。タイトル画面に戻りますか？',
+      [
+        { label: 'そのまま続ける', cls: 'px-3 py-2 rounded-xl text-xs font-bold bg-slate-700 text-white' },
+        { label: 'タイトルへ戻る', cls: 'px-3 py-2 rounded-xl text-xs font-bold bg-sky-500 text-slate-950', onClick: () => renderTitle() }
+      ]
+    );
+  }
+
+  function openPcInBuilder(idx) {
+    selectedPcIdx = idx;
+    setTab('build');
+  }
+
+  function addNewPcSlot() {
+    if (state.pcs.length >= 6) {
+      showModal('上限です', '部屋に置けるパソコンは最大6台までです。不要なPCを分解または処分してください。', [{ label: 'OK' }]);
+      return;
+    }
+    AudioSys.se('click');
+    const num = state.pcs.length + 1;
+    state.pcs.push({ id: Date.now() + Math.random(), name: `次郎${num}号機`, parts: {} });
+    selectedPcIdx = state.pcs.length - 1;
+    writeSave();
+    renderApp();
+  }
+
+  /* ---------------------- TAB 2: PC BUILDER & ASSEMBLY ---------------------- */
+  function renderBuildTab() {
+    if (!state.pcs[selectedPcIdx]) selectedPcIdx = 0;
+    const pc = state.pcs[selectedPcIdx];
+    const st = evaluatePC(pc);
+
+    const pcTabs = state.pcs.map((p, idx) => `
+      <button type="button" onclick="App.selectPcSlot(${idx})" class="px-2.5 py-1 rounded-lg text-[11px] font-black shrink-0 ${idx === selectedPcIdx ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-300 border border-slate-700'}">
+        ${p.name}
+      </button>
+    `).join('');
+
+    const slotRows = PART_CATEGORIES.map(cat => {
+      const equipped = pc.parts[cat.key];
+      const spec = equipped ? getSpec(equipped.specId) : null;
+      const compatCount = state.inventory.filter(it => getSpec(it.specId).cat === cat.key).length;
+
+      let durBadge = '';
+      if (equipped && spec) {
+        if (spec.cat === 'os') {
+          durBadge = '<span class="text-[10px] text-sky-300 font-bold">ライセンス済</span>';
+        } else if (equipped.dur <= 0) {
+          durBadge = `<span class="text-[10px] text-rose-400 font-black">💥 破損 (0/${equipped.maxDur})</span>`;
+        } else {
+          const pct = Math.round((equipped.dur / equipped.maxDur) * 100);
+          durBadge = `<span class="text-[10px] ${pct < 35 ? 'text-amber-300' : 'text-emerald-300'} font-bold">耐久 ${equipped.dur}/${equipped.maxDur}</span>`;
+        }
+      }
+
+      return `
+        <div class="p-2 rounded-xl bg-slate-800/90 border ${equipped ? (equipped.dur <= 0 && spec.cat !== 'os' ? 'border-rose-500/80' : 'border-slate-700') : 'border-dashed border-slate-600'} flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 min-w-0">
+            ${equipped ? svgPartIcon(cat.key, spec.tier, equipped.dur <= 0 && spec.cat !== 'os', 34) : '<div class="w-[34px] h-[34px] rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-[10px] text-slate-500">空</div>'}
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-900 text-slate-300">${cat.label}</span>
+                ${durBadge}
+              </div>
+              <div class="text-xs font-bold text-white truncate mt-0.5">
+                ${spec ? spec.name : '<span class="text-slate-500">未装着</span>'}
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            <button type="button" onclick="App.openPartPicker('${cat.key}')" class="px-2 py-1 rounded-lg text-[10px] font-black ${compatCount > 0 ? 'bg-sky-600 hover:bg-sky-500 text-white' : 'bg-slate-700 text-slate-400'}">
+              変更(${compatCount})
+            </button>
+            ${equipped ? `<button type="button" onclick="App.unequipPart('${cat.key}')" class="px-1.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-[10px] font-bold text-slate-200">外す</button>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const main = document.getElementById('main-view');
+    main.innerHTML = `
+      <div class="flex-1 flex flex-col justify-between p-3 gap-2 overflow-y-auto text-slate-100">
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 shrink-0">
+          ${pcTabs}
+          <button type="button" onclick="App.addNewPcSlot()" class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-600 text-[11px] font-bold text-sky-300 shrink-0">+追加</button>
+        </div>
+
+        <div class="bg-slate-900/95 border ${st.ok ? 'border-emerald-400/70' : 'border-amber-400/60'} rounded-2xl p-2.5 flex items-center gap-2.5 shrink-0">
+          ${svgAssembledPC(pc, 78)}
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-black text-white">${pc.name}</span>
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-black ${st.ok ? 'bg-emerald-500 text-slate-950' : 'bg-amber-500 text-slate-950'}">
+                ${st.ok ? '起動・大会OK' : '未完成/要調整'}
+              </span>
+            </div>
+            <div class="mt-1 grid grid-cols-2 gap-1 text-[11px]">
+              <div class="bg-slate-800 px-2 py-0.5 rounded">ベンチ: <strong class="text-sky-300">${st.bench.toLocaleString()}</strong></div>
+              <div class="bg-slate-800 px-2 py-0.5 rounded">電力: <strong class="${st.totalWatt > st.supplyWatt ? 'text-rose-400' : 'text-emerald-300'}">${st.totalWatt}/${st.supplyWatt}W</strong></div>
+            </div>
+            ${!st.ok ? `<div class="mt-1 text-[10px] text-rose-300 font-bold truncate">⚠ ${st.issues[0]}</div>` : ''}
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          ${slotRows}
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1 shrink-0">
+          <button type="button" onclick="App.disassemblePc()" class="py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[11px] font-bold text-slate-200">
+            🧰 全パーツ分解
+          </button>
+          <button type="button" onclick="App.trashPcOrParts()" class="py-2 px-2 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-700/60 text-[11px] font-bold text-rose-200">
+            🗑 PC/パーツを捨てる(無料)
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  function selectPcSlot(idx) {
+    AudioSys.se('click');
+    selectedPcIdx = idx;
+    renderApp();
+  }
+
+  function openPartPicker(catKey) {
+    AudioSys.se('click');
+    const candidates = state.inventory.filter(it => getSpec(it.specId).cat === catKey);
+    const catLabel = PART_CATEGORIES.find(c => c.key === catKey).label;
+
+    if (candidates.length === 0) {
+      showModal(`${catLabel}の在庫がありません`, `手持ちに${catLabel}がありません。「通販」タブからフリマやPCショップで購入してください。`, [{ label: '閉じる' }]);
+      return;
+    }
+
+    const listHtml = candidates.map(it => {
+      const sp = getSpec(it.specId);
+      const extra = sp.socket ? `[${sp.socket}]` : sp.ramType ? `[${sp.ramType}]` : sp.supply ? `[${sp.supply}W]` : '';
+      const durText = sp.cat === 'os' ? 'OSソフト' : (it.dur <= 0 ? '💥破損(0)' : `耐久 ${it.dur}/${it.maxDur}`);
+      return `
+        <div class="p-2 mb-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <div class="text-xs font-black text-white truncate">${sp.name} ${extra}</div>
+            <div class="text-[10px] text-slate-300">ベンチ+${sp.bench} ・ ${durText}</div>
+          </div>
+          <button type="button" onclick="App.equipPart(${it.uid})" class="px-2.5 py-1 rounded-lg bg-sky-500 text-slate-950 font-black text-[11px] shrink-0">装着</button>
+        </div>
+      `;
+    }).join('');
+
+    showModal(`${catLabel}を選択して装着`, listHtml, [{ label: '閉じる' }]);
+  }
+
+  function equipPart(uid) {
+    const idx = state.inventory.findIndex(x => x.uid === uid);
+    if (idx === -1) return;
+    const item = state.inventory[idx];
+    const sp = getSpec(item.specId);
+    const pc = state.pcs[selectedPcIdx];
+
+    if (pc.parts[sp.cat]) {
+      state.inventory.push(pc.parts[sp.cat]);
+    }
+    pc.parts[sp.cat] = item;
+    state.inventory.splice(idx, 1);
+
+    closeModal();
+    AudioSys.se('build');
+    const st = evaluatePC(pc);
+    writeSave();
+
+    if (st.ok && !state.flags.seenFirstPc) {
+      state.flags.seenFirstPc = true;
+      writeSave();
+      startAdv([
+        { speaker: `次郎（${state.age}歳）`, mood: 'happy', text: '「おおおっ！電源スイッチON……ファンが光ってOSが起動したぞ！！」' },
+        { speaker: `次郎（${state.age}歳）`, mood: 'happy', text: `「ベンチマークは${st.bench.toLocaleString()}！よし、いよいよ『大会』タブからパソコンバトルに参戦だ！」` }
+      ], () => renderApp());
+      return;
+    }
+
+    renderApp();
+  }
+
+  function unequipPart(catKey) {
+    const pc = state.pcs[selectedPcIdx];
+    if (!pc.parts[catKey]) return;
+    AudioSys.se('click');
+    state.inventory.push(pc.parts[catKey]);
+    delete pc.parts[catKey];
+    evaluatePC(pc);
+    writeSave();
+    renderApp();
+  }
+
+  function disassemblePc() {
+    const pc = state.pcs[selectedPcIdx];
+    const keys = Object.keys(pc.parts);
+    if (keys.length === 0) return;
+    AudioSys.se('build');
+    keys.forEach(k => {
+      state.inventory.push(pc.parts[k]);
+      delete pc.parts[k];
+    });
+    evaluatePC(pc);
+    addLog(`${pc.name}をすべてパーツに分解した。`);
+    writeSave();
+    renderApp();
+  }
+
+  function trashPcOrParts() {
+    AudioSys.se('click');
+    const pc = state.pcs[selectedPcIdx];
+    const invHtml = state.inventory.map(it => {
+      const sp = getSpec(it.specId);
+      return `
+        <div class="flex items-center justify-between py-1 border-b border-slate-800 text-[11px]">
+          <span class="truncate pr-2">${sp.name} (${sp.cat === 'os' ? 'OS' : `耐久${it.dur}`})</span>
+          <button type="button" onclick="App.trashInventoryItem(${it.uid})" class="px-2 py-0.5 rounded bg-rose-600 text-white font-bold shrink-0">捨てる</button>
+        </div>
+      `;
+    }).join('');
+
+    showModal(
+      '不要なPC・パーツの処分（無料）',
+      `
+        <p class="mb-2 text-[11px] text-slate-300">破損したパーツや不要なPCを0円で処分できます。</p>
+        <button type="button" onclick="App.trashCurrentPc()" class="w-full mb-3 py-1.5 rounded-lg bg-rose-700 text-white font-black text-xs">
+          現在選択中の「${pc.name}」を丸ごと処分する
+        </button>
+        <div class="font-bold text-slate-300 mb-1">手持ちパーツ一覧 (${state.inventory.length}個):</div>
+        ${invHtml || '<div class="text-slate-500">手持ちパーツはありません</div>'}
+      `,
+      [{ label: '閉じる' }]
+    );
+  }
+
+  function trashCurrentPc() {
+    const pc = state.pcs[selectedPcIdx];
+    addLog(`${pc.name}を無料で処分した。`);
+    if (state.pcs.length > 1) {
+      state.pcs.splice(selectedPcIdx, 1);
+      selectedPcIdx = 0;
+    } else {
+      pc.parts = {};
+      evaluatePC(pc);
+    }
+    closeModal();
+    writeSave();
+    renderApp();
+  }
+
+  function trashInventoryItem(uid) {
+    const idx = state.inventory.findIndex(x => x.uid === uid);
+    if (idx !== -1) {
+      const sp = getSpec(state.inventory[idx].specId);
+      state.inventory.splice(idx, 1);
+      addLog(`不要パーツ「${sp.name}」を無料で処分した。`);
+      writeSave();
+      trashPcOrParts();
+      renderApp();
+    }
+  }
+
+  /* ---------------------- TAB 3: 7 ONLINE SHOPS & BTO ---------------------- */
+  function renderShopTab() {
+    const shop = SHOPS.find(s => s.id === selectedShopId) || SHOPS[0];
+    const mkt = state.market[shop.id] || { hasSale: false, items: [] };
+
+    const shopBtns = SHOPS.map(s => {
+      const active = s.id === shop.id;
+      const saleDot = (state.market[s.id] && state.market[s.id].hasSale) ? '🔥' : '';
+      return `
+        <button type="button" onclick="App.selectShop('${s.id}')" class="px-2 py-1 rounded-lg text-[10px] font-black shrink-0 ${active ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300 border border-slate-700'}">
+          ${s.tag}${saleDot}
+        </button>
+      `;
+    }).join('');
+
+    let bodyHtml = '';
+    if (shop.type === 'new' && shopSubMode === 'bto') {
+      bodyHtml = renderBtoConfigurator();
+    } else {
+      const siteLoyalty = shop.type === 'flea' ? (state.fleaLoyalty[shop.id] || 0) : 0;
+      const itemsHtml = mkt.items.map(item => {
+        let discountRate = 0;
+        if (shop.type === 'flea') {
+          const sellerCount = state.sellerLoyalty[item.seller] || 0;
+          if (sellerCount > 0) discountRate += Math.min(0.10, sellerCount * 0.05);
+          if (siteLoyalty >= 2) discountRate += 0.05;
+        }
+        const finalPrice = Math.round((item.price * (1 - discountRate)) / 100) * 100;
+        const canAfford = state.money >= finalPrice;
+
+        const firstSpec = getSpec(item.parts[0].specId);
+        const subDesc = item.kind === 'part'
+          ? (firstSpec.cat === 'os'
+              ? '新品OSライセンス'
+              : `${item.parts[0].condition === 'new' ? '新品' : item.parts[0].condition === 'junk' ? '💥ジャンク/破損の可能性大' : `中古(耐久約${Math.round(item.parts[0].durRatio * 100)}%)`} ・ ベンチ+${firstSpec.bench}`)
+          : `${item.parts.length}点構成 (${item.kind === 'incomplete_pc' ? 'パーツ一部欠品' : 'セット/完成品'})`;
+
+        return `
+          <div class="p-2 rounded-xl bg-slate-800/95 border ${item.isSale ? 'border-amber-400/80' : 'border-slate-700'} flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              ${svgPartIcon(firstSpec.cat, firstSpec.tier, item.parts[0].condition === 'junk', 36)}
+              <div class="min-w-0">
+                <div class="flex items-center gap-1">
+                  ${item.isSale ? '<span class="px-1 rounded bg-rose-600 text-white text-[9px] font-black">SALE</span>' : ''}
+                  ${discountRate > 0 ? `<span class="px-1 rounded bg-emerald-500 text-slate-950 text-[9px] font-black">リピート${Math.round(discountRate * 100)}%OFF</span>` : ''}
+                  <span class="text-xs font-black text-white truncate">${item.title}</span>
+                </div>
+                <div class="text-[10px] text-slate-300 truncate">${subDesc}</div>
+                ${shop.type === 'flea' ? `<div class="text-[9px] text-slate-400">出品者: ${item.seller}</div>` : ''}
+              </div>
+            </div>
+            <button type="button" onclick="App.buyMarketItem('${shop.id}', '${item.id}')" ${canAfford ? '' : 'disabled'} class="px-2.5 py-1.5 rounded-xl text-[11px] font-black shrink-0 ${canAfford ? 'bg-amber-400 hover:bg-amber-300 text-slate-950' : 'bg-slate-700 text-slate-500'}">
+              ¥${finalPrice.toLocaleString()}
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      bodyHtml = `<div class="flex flex-col gap-1.5">${itemsHtml}</div>`;
+    }
+
+    const main = document.getElementById('main-view');
+    main.innerHTML = `
+      <div class="flex-1 flex flex-col justify-between p-3 gap-2 overflow-y-auto text-slate-100">
+        <div class="flex items-center gap-1 overflow-x-auto pb-0.5 shrink-0">
+          ${shopBtns}
+        </div>
+
+        <div class="p-2.5 rounded-2xl bg-gradient-to-r ${shop.color} text-white shadow shrink-0">
+          <div class="flex items-center justify-between">
+            <span class="font-black text-sm">${shop.name}</span>
+            ${mkt.hasSale ? '<span class="px-2 py-0.5 rounded-full bg-yellow-300 text-slate-950 text-[10px] font-black animate-pulse">🔥 特価セール開催中！</span>' : ''}
+          </div>
+          <p class="text-[10px] text-white/90 mt-0.5">${shop.desc}（購入品は翌週到着）</p>
+          ${shop.type === 'new' ? `
+            <div class="mt-2 grid grid-cols-2 gap-1.5">
+              <button type="button" onclick="App.setShopSubMode('browse')" class="py-1 rounded-lg text-[11px] font-black ${shopSubMode === 'browse' ? 'bg-slate-950 text-white' : 'bg-white/20 text-white'}">
+                パーツ・OS・完成品一覧
+              </button>
+              <button type="button" onclick="App.setShopSubMode('bto')" class="py-1 rounded-lg text-[11px] font-black ${shopSubMode === 'bto' ? 'bg-amber-300 text-slate-950' : 'bg-white/20 text-white'}">
+                🛠 BTOカスタム注文
+              </button>
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="flex-1 overflow-y-auto pr-0.5">
+          ${bodyHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  function selectShop(id) {
+    AudioSys.se('click');
+    selectedShopId = id;
+    shopSubMode = 'browse';
+    renderApp();
+  }
+
+  function setShopSubMode(mode) {
+    AudioSys.se('click');
+    shopSubMode = mode;
+    if (mode === 'bto') {
+      const def = createAutoCompleteBuild(Math.min(3, 1 + Math.floor((state.year - 2027) / 3)), 'new');
+      btoDraft = {};
+      def.forEach(d => { btoDraft[getSpec(d.specId).cat] = d.specId; });
+    }
+    renderApp();
+  }
+
+  function renderBtoConfigurator() {
+    const avail = CATALOG.filter(s => s.year <= state.year);
+    let totalCost = 0;
+    let totalBench = 0;
+    let totalWatt = 0;
+    let supplyWatt = 0;
+
+    const selectors = PART_CATEGORIES.map(cat => {
+      const options = avail.filter(s => s.cat === cat.key);
+      const chosenId = btoDraft[cat.key] || options[0].id;
+      btoDraft[cat.key] = chosenId;
+      const sp = getSpec(chosenId);
+      totalCost += sp.price;
+      totalBench += sp.bench;
+      totalWatt += (sp.watt || 0);
+      if (cat.key === 'psu') supplyWatt = sp.supply || 0;
+
+      const optHtml = options.map(o => `<option value="${o.id}" ${o.id === chosenId ? 'selected' : ''}>${o.name} (¥${o.price.toLocaleString()})</option>`).join('');
+      return `
+        <div class="flex items-center justify-between gap-2 bg-slate-800/90 p-1.5 rounded-lg border border-slate-700 text-[11px]">
+          <span class="font-bold text-slate-300 w-20 shrink-0">${cat.label}</span>
+          <select onchange="App.updateBtoPart('${cat.key}', this.value)" class="flex-1 bg-slate-950 text-white border border-slate-600 rounded px-1.5 py-1 text-[11px] font-bold">
+            ${optHtml}
+          </select>
+        </div>
+      `;
+    }).join('');
+
+    const cpuSp = getSpec(btoDraft.cpu);
+    const mbSp = getSpec(btoDraft.mobo);
+    const ramSp = getSpec(btoDraft.ram);
+    const btoIssues = [];
+    if (cpuSp.socket !== mbSp.socket) btoIssues.push(`ソケット不一致(${cpuSp.socket}≠${mbSp.socket})`);
+    if (mbSp.ramType !== ramSp.ramType) btoIssues.push(`メモリ不一致(${mbSp.ramType}≠${ramSp.ramType})`);
+    if (totalWatt > supplyWatt) btoIssues.push(`電源容量不足(${totalWatt}W>${supplyWatt}W)`);
+
+    const assemblyFee = 5000;
+    const grandTotal = totalCost + assemblyFee;
+    const canOrder = btoIssues.length === 0 && state.money >= grandTotal;
+
+    return `
+      <div class="flex flex-col gap-1.5">
+        <div class="p-2 rounded-xl bg-slate-900 border border-sky-500/50 text-[11px]">
+          <div class="flex justify-between font-black">
+            <span>予想ベンチ: <strong class="text-sky-300">${totalBench.toLocaleString()}</strong></span>
+            <span>合計(組立費¥5,000込): <strong class="text-amber-300">¥${grandTotal.toLocaleString()}</strong></span>
+          </div>
+          ${btoIssues.length > 0 ? `<div class="text-rose-400 font-bold mt-1">⚠ ${btoIssues.join(' / ')}</div>` : '<div class="text-emerald-400 font-bold mt-1">✔ 相性チェックOK！翌週完成状態で届きます</div>'}
+        </div>
+        ${selectors}
+        <button type="button" onclick="App.orderBtoPc(${grandTotal})" ${canOrder ? '' : 'disabled'} class="w-full py-2.5 rounded-xl font-black text-xs ${canOrder ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 shadow-lg' : 'bg-slate-700 text-slate-500'}">
+          🛒 この構成でBTOパソコンを注文する (¥${grandTotal.toLocaleString()})
+        </button>
+      </div>
+    `;
+  }
+
+  function updateBtoPart(catKey, specId) {
+    btoDraft[catKey] = specId;
+    renderApp();
+  }
+
+  function orderBtoPc(grandTotal) {
+    if (state.money < grandTotal) return;
+    if (state.pcs.length + state.deliveries.length >= 6) {
+      showModal('PC枠がいっぱいです', '所持・配送中のPC枠が上限(6台)に達しています。先に既存のPCを分解または処分してください。', [{ label: 'OK' }]);
+      return;
+    }
+    state.money -= grandTotal;
+    const pcName = `BTO-${state.pcs.length + state.deliveries.length + 1}号機`;
+    const partsSpec = PART_CATEGORIES.map(c => ({
+      specId: btoDraft[c.key],
+      condition: 'new',
+      durRatio: 1
+    }));
+    state.deliveries.push({
+      id: Date.now() + Math.random(),
+      shopName: 'BTOカスタム通販',
+      title: `【BTO注文】${pcName}`,
+      kind: 'bto_pc',
+      pcName,
+      parts: partsSpec
+    });
+    AudioSys.se('buy');
+    addLog(`BTOパソコン「${pcName}」を¥${grandTotal.toLocaleString()}で注文した（翌週到着予定）。`);
+    writeSave();
+    showModal('注文完了（翌週到着）', `BTOパソコン「${pcName}」を注文しました！<br><span class="text-amber-300 font-bold">🚚 商品は翌週の週替わり時に届きます。</span>`, [{ label: 'OK', onClick: () => renderApp() }]);
+  }
+
+  function buyMarketItem(shopId, itemId) {
+    const shop = SHOPS.find(s => s.id === shopId);
+    const mkt = state.market[shopId];
+    if (!shop || !mkt) return;
+    const idx = mkt.items.findIndex(x => x.id === itemId);
+    if (idx === -1) return;
+    const item = mkt.items[idx];
+
+    let discountRate = 0;
+    if (shop.type === 'flea') {
+      const sellerCount = state.sellerLoyalty[item.seller] || 0;
+      if (sellerCount > 0) discountRate += Math.min(0.10, sellerCount * 0.05);
+      if ((state.fleaLoyalty[shop.id] || 0) >= 2) discountRate += 0.05;
+    }
+    const finalPrice = Math.round((item.price * (1 - discountRate)) / 100) * 100;
+    if (state.money < finalPrice) return;
+
+    state.money -= finalPrice;
+    if (shop.type === 'flea') {
+      state.fleaLoyalty[shop.id] = (state.fleaLoyalty[shop.id] || 0) + 1;
+      state.sellerLoyalty[item.seller] = (state.sellerLoyalty[item.seller] || 0) + 1;
+      mkt.items.splice(idx, 1);
+    }
+
+    const pcName = (item.kind === 'pc' || item.kind === 'incomplete_pc')
+      ? `${item.kind === 'pc' ? '中古PC' : '欠品PC'}${state.pcs.length + state.deliveries.length + 1}号`
+      : null;
+
+    state.deliveries.push({
+      id: Date.now() + Math.random(),
+      shopName: shop.name,
+      title: item.title,
+      kind: item.kind,
+      pcName,
+      parts: item.parts.map(p => ({ specId: p.specId, condition: p.condition, durRatio: p.durRatio }))
+    });
+
+    AudioSys.se('buy');
+    addLog(`${shop.name}で「${item.title}」を¥${finalPrice.toLocaleString()}で購入（翌週到着予定）。`);
+    writeSave();
+    showModal('購入完了（翌週到着）', `「${item.title}」を購入しました！<br><span class="text-amber-300 font-bold">🚚 配送中のため、翌週に進むと手元に届きます。</span>`, [{ label: 'OK', onClick: () => renderApp() }]);
+  }
+
+  /* ---------------------- TAB 4: FLEA MARKET LISTING ---------------------- */
+  function renderFleaTab() {
+    const invCheckboxes = state.inventory.map(it => {
+      const sp = getSpec(it.specId);
+      const checked = fleaDraft.selectedUids.includes(it.uid);
+      const durTxt = sp.cat === 'os' ? 'OS' : (it.dur <= 0 ? '💥破損(0)' : `耐久${it.dur}/${it.maxDur}`);
+      return `
+        <button type="button" onclick="App.toggleFleaSelect(${it.uid})" class="w-full text-left p-2 rounded-xl border text-xs flex items-center justify-between ${checked ? 'bg-sky-900/60 border-sky-400 text-white' : 'bg-slate-800/80 border-slate-700 text-slate-300'}">
+          <span class="truncate pr-2">${checked ? '☑' : '☐'} ${sp.name} (${durTxt})</span>
+          <span class="text-[10px] text-slate-400 shrink-0">参考¥${Math.round(sp.price * (it.dur <= 0 ? 0.15 : 0.5)).toLocaleString()}</span>
+        </button>
+      `;
+    }).join('');
+
+    const pcPackButtons = state.pcs.filter(p => Object.keys(p.parts).length > 0).map((pc, idx) => `
+      <button type="button" onclick="App.packPcForListing(${idx})" class="px-2 py-1 rounded-lg bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-500/50 text-[10px] font-bold text-indigo-200">
+        📦「${pc.name}」のパーツを出品候補へ移す
+      </button>
+    `).join('');
+
+    const activeListingsHtml = state.listings.map(lst => `
+      <div class="p-2 rounded-xl bg-slate-800 border border-amber-500/40 flex items-center justify-between gap-2 text-xs">
+        <div class="min-w-0">
+          <div class="font-black text-amber-200 truncate">${lst.title} (${lst.items.length}点)</div>
+          <div class="text-[10px] text-slate-300">出品価格: ¥${lst.price.toLocaleString()} ・ 経過: ${lst.weeksListed}週目</div>
+        </div>
+        <button type="button" onclick="App.cancelListing(${lst.id})" class="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-[10px] font-bold text-slate-200 shrink-0">
+          取り下げ
+        </button>
+      </div>
+    `).join('');
+
+    const main = document.getElementById('main-view');
+    main.innerHTML = `
+      <div class="flex-1 flex flex-col justify-between p-3 gap-2 overflow-y-auto text-slate-100">
+        <div class="bg-slate-900/95 border border-slate-700 rounded-2xl p-2.5">
+          <div class="text-xs font-black text-amber-300 mb-1">📦 フリマサイトへ出品する（パーツ・セット・PC・破損品OK）</div>
+          <p class="text-[10px] text-slate-300 mb-2">複数選択して「パーツセット」や「未完成PC」として出品可能。週を進めると売れます（高すぎると売れません）。</p>
+
+          <div class="flex flex-wrap gap-1 mb-2">${pcPackButtons}</div>
+
+          <div class="max-h-36 overflow-y-auto flex flex-col gap-1 mb-2 pr-0.5">
+            ${invCheckboxes || '<div class="text-[11px] text-slate-500 py-2 text-center">出品できる手持ちパーツがありません</div>'}
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5 mb-2 text-xs">
+            <div>
+              <label class="text-[10px] text-slate-400 block">出品先フリマ</label>
+              <select id="flea-target-shop" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-2 py-1 text-xs font-bold">
+                <option value="flea1">メルパソ</option>
+                <option value="flea2">オクパソ</option>
+                <option value="flea3">フリパソ</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 block">販売価格 (円)</label>
+              <input id="flea-price-input" type="number" step="500" min="500" value="${fleaDraft.price}" onchange="App.updateFleaPrice(this.value)" class="w-full bg-slate-950 border border-slate-600 rounded-lg px-2 py-1 text-xs font-black text-amber-300"/>
+            </div>
+          </div>
+
+          <button type="button" onclick="App.createFleaListing()" ${fleaDraft.selectedUids.length === 0 ? 'disabled' : ''} class="w-full py-2 rounded-xl font-black text-xs ${fleaDraft.selectedUids.length > 0 ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950' : 'bg-slate-700 text-slate-500'}">
+            選択した${fleaDraft.selectedUids.length}点を出品する（手数料10%）
+          </button>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 flex-1 overflow-y-auto">
+          <div class="text-xs font-black text-slate-300 mb-1.5">出品中の商品 (${state.listings.length}件)</div>
+          <div class="flex flex-col gap-1.5">
+            ${activeListingsHtml || '<div class="text-[11px] text-slate-500">現在出品中の商品はありません</div>'}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function recalcSuggestedFleaPrice() {
+    const sum = fleaDraft.selectedUids.reduce((acc, id) => {
+      const it = state.inventory.find(x => x.uid === id);
+      if (!it) return acc;
+      const sp = getSpec(it.specId);
+      const ratio = sp.cat === 'os' ? 0.5 : (it.dur <= 0 ? 0.15 : (0.35 + (it.dur / it.maxDur) * 0.45));
+      return acc + sp.price * ratio;
+    }, 0);
+    if (sum > 0) fleaDraft.price = Math.max(500, Math.round(sum / 500) * 500);
+  }
+
+  function toggleFleaSelect(uid) {
+    AudioSys.se('click');
+    const i = fleaDraft.selectedUids.indexOf(uid);
+    if (i === -1) fleaDraft.selectedUids.push(uid);
+    else fleaDraft.selectedUids.splice(i, 1);
+    recalcSuggestedFleaPrice();
+    renderApp();
+  }
+
+  function updateFleaPrice(val) {
+    fleaDraft.price = Math.max(500, parseInt(val, 10) || 1000);
+  }
+
+  function packPcForListing(pcIdx) {
+    const pc = state.pcs[pcIdx];
+    const keys = Object.keys(pc.parts);
+    if (keys.length === 0) return;
+    AudioSys.se('build');
+    keys.forEach(k => {
+      const item = pc.parts[k];
+      state.inventory.push(item);
+      if (!fleaDraft.selectedUids.includes(item.uid)) fleaDraft.selectedUids.push(item.uid);
+      delete pc.parts[k];
+    });
+    evaluatePC(pc);
+    recalcSuggestedFleaPrice();
+    renderApp();
+  }
+
+  function createFleaListing() {
+    if (fleaDraft.selectedUids.length === 0) return;
+    const shopId = document.getElementById('flea-target-shop').value;
+    const priceInput = document.getElementById('flea-price-input');
+    const price = Math.max(500, parseInt(priceInput.value, 10) || fleaDraft.price);
+
+    const packedItems = [];
+    fleaDraft.selectedUids.forEach(uid => {
+      const idx = state.inventory.findIndex(x => x.uid === uid);
+      if (idx !== -1) {
+        packedItems.push(state.inventory[idx]);
+        state.inventory.splice(idx, 1);
+      }
+    });
+
+    const firstSp = getSpec(packedItems[0].specId);
+    const hasBroken = packedItems.some(x => x.dur <= 0 && getSpec(x.specId).cat !== 'os');
+    const title = packedItems.length >= 8
+      ? `自作PC本体${hasBroken ? '(ジャンク)' : ''}`
+      : packedItems.length > 1
+      ? `${firstSp.name} ほか${packedItems.length}点セット`
+      : `${hasBroken ? '[破損]' : ''}${firstSp.name}`;
+
+    state.listings.push({
+      id: Date.now() + Math.random(),
+      shopId,
+      title,
+      items: packedItems,
+      price,
+      weeksListed: 0
+    });
+
+    fleaDraft.selectedUids = [];
+    AudioSys.se('buy');
+    addLog(`フリマに「${title}」を¥${price.toLocaleString()}で出品した。`);
+    writeSave();
+    renderApp();
+  }
+
+  function cancelListing(listingId) {
+    const idx = state.listings.findIndex(x => x.id === listingId);
+    if (idx === -1) return;
+    const lst = state.listings[idx];
+    lst.items.forEach(it => state.inventory.push(it));
+    state.listings.splice(idx, 1);
+    AudioSys.se('click');
+    addLog(`出品「${lst.title}」を取り下げて手持ちに戻した。`);
+    writeSave();
+    renderApp();
+  }
+
+  /* ---------------------- TAB 5: PASOKON BATTLE TOURNAMENTS ---------------------- */
+  function renderBattleTab() {
+    if (!state.pcs[battleSelectedPcIdx]) battleSelectedPcIdx = 0;
+    const pc = state.pcs[battleSelectedPcIdx];
+    const st = evaluatePC(pc);
+
+    const pcSelectOpts = state.pcs.map((p, i) => {
+      const s = evaluatePC(p);
+      return `<option value="${i}" ${i === battleSelectedPcIdx ? 'selected' : ''}>${p.name} (ベンチ:${s.bench.toLocaleString()} / ${s.ok ? '出場可' : '不可'})</option>`;
+    }).join('');
+
+    const rankCards = RANKS.map(r => {
+      const cleared = state.clearedRanks[r.id];
+      const benchOk = st.ok && st.bench >= r.minBench;
+      return `
+        <div class="p-2.5 rounded-2xl bg-slate-800/95 border ${cleared ? 'border-amber-400/80' : benchOk ? 'border-sky-500/70' : 'border-slate-700'} flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="px-2 py-0.5 rounded-md font-black text-xs ${r.id === 'S' ? 'bg-gradient-to-r from-amber-400 to-rose-500 text-slate-950' : 'bg-indigo-600 text-white'}">${r.id}ランク</span>
+              <span class="text-xs font-black text-white truncate">${r.name.split('・')[1]}</span>
+              ${cleared ? '<span class="text-[10px] font-black text-amber-300">★制覇済</span>' : ''}
+            </div>
+            <div class="text-[10px] text-slate-300 mt-0.5">
+              必要ベンチ: <strong class="${benchOk ? 'text-emerald-300' : 'text-rose-400'}">${r.minBench.toLocaleString()}</strong> ・ 優勝賞金: <strong class="text-amber-300">¥${r.prizes[0].toLocaleString()}</strong>
+            </div>
+            <div class="text-[9px] text-slate-400 truncate">${r.desc}</div>
+          </div>
+          <button type="button" onclick="App.enterTournament('${r.id}')" ${benchOk ? '' : 'disabled'} class="px-3 py-2 rounded-xl text-xs font-black shrink-0 ${benchOk ? 'bg-gradient-to-r from-rose-500 to-amber-500 text-slate-950 shadow' : 'bg-slate-700 text-slate-500'}">
+            参戦！
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    const main = document.getElementById('main-view');
+    main.innerHTML = `
+      <div class="flex-1 flex flex-col justify-between p-3 gap-2 overflow-y-auto text-slate-100">
+        <div class="bg-slate-900/95 border border-sky-500/50 rounded-2xl p-2.5 shrink-0">
+          <div class="text-xs font-black text-sky-300 mb-1">⚡ パソコンバトル大会エントリー</div>
+          <select onchange="App.selectBattlePc(this.value)" class="w-full bg-slate-950 border border-slate-600 rounded-xl px-2.5 py-1.5 text-xs font-black text-white">
+            ${pcSelectOpts}
+          </select>
+          <p class="text-[10px] text-amber-200/90 mt-1.5 leading-snug">
+            ※勝敗はベンチマークではなく<strong>各パーツの耐久度</strong>で決まります！大会後はパーツが摩耗・破損し、1週間経過します。
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1.5 flex-1 overflow-y-auto">
+          ${rankCards}
+        </div>
+      </div>
+    `;
+  }
+
+  function selectBattlePc(idx) {
+    battleSelectedPcIdx = parseInt(idx, 10) || 0;
+    renderApp();
+  }
+
+  /* ---------------------- LIVE AI DURABILITY SURVIVAL ARENA ---------------------- */
+  function enterTournament(rankId) {
+    const rank = RANKS.find(r => r.id === rankId);
+    const pc = state.pcs[battleSelectedPcIdx];
+    const st = evaluatePC(pc);
+    if (!rank || !st.ok || st.bench < rank.minBench) return;
+
+    AudioSys.init();
+    AudioSys.se('click');
+
+    if (!state.flags.seenFirstBattle) {
+      state.flags.seenFirstBattle = true;
+      writeSave();
+      startAdv([
+        { speaker: `次郎（${state.age}歳）`, mood: 'happy', text: '「ついに初陣だ！パソコンバトルではAI同士が極限の演算バトルを繰り広げる！」' },
+        { speaker: `次郎（${state.age}歳）`, mood: 'build', text: '「1つでもパーツの耐久度が0になって破損したら即AI停止で敗退……頼むぞ、俺の相棒！」' }
+      ], () => runArenaSimulation(rank, pc));
+      return;
+    }
+
+    runArenaSimulation(rank, pc);
+  }
+
+  function runArenaSimulation(rank, pc) {
+    inArena = true;
+    document.getElementById('bottom-nav').classList.add('hidden');
+    AudioSys.playBgm('arena');
+
+    const coolerSpec = getSpec(pc.parts.cooler.specId);
+    const caseSpec = getSpec(pc.parts.case.specId);
+    const mitigation = Math.min(0.55, (coolerSpec.cool || 0) + (caseSpec.protect || 0));
+
+    const rivalNames = [
+      '秋葉原の黒豹', '水冷マスターK', '深夜のオーバークロッカー', '白統一の麗奈',
+      'ジャンク再生師', '電脳学園エース', '爆熱ベンチマーカー', '静音主義者Z', 'AI研究所員β'
+    ];
+    const entrants = rivalNames.map((name, i) => {
+      const [minD, maxD] = rank.rivalDurRange;
+      const baseD = Math.round(minD + Math.random() * (maxD - minD));
+      return {
+        id: `rival_${i}`,
+        name,
+        isJiro: false,
+        hp: baseD,
+        maxHp: baseD,
+        alive: true,
+        elimOrder: 0
+      };
+    });
+
+    entrants.push({
+      id: 'jiro',
+      name: `次郎 (${pc.name})`,
+      isJiro: true,
+      alive: true,
+      elimOrder: 0
+    });
+
+    let tickCount = 0;
+    let elimCounter = 0;
+    const battleLogs = [`🔥 ${rank.name} 開幕！全10台のAIがフルロード演算を開始！`];
+    const physicalKeys = ['cpu', 'cooler', 'mobo', 'ram', 'gpu', 'ssd', 'psu', 'case'];
+
+    function renderArenaScreen(finished = false, finalPlacement = 10, prize = 0) {
+      const partBars = physicalKeys.map(k => {
+        const pt = pc.parts[k];
+        const sp = getSpec(pt.specId);
+        const pct = Math.max(0, Math.round((pt.dur / pt.maxDur) * 100));
+        const barCol = pt.dur <= 0 ? 'bg-rose-600' : pct < 30 ? 'bg-amber-400' : 'bg-emerald-400';
+        return `
+          <div class="bg-slate-800/90 px-2 py-1 rounded-lg border ${pt.dur <= 0 ? 'border-rose-500' : 'border-slate-700'}">
+            <div class="flex justify-between text-[10px] font-bold">
+              <span class="truncate">${sp.name}</span>
+              <span class="${pt.dur <= 0 ? 'text-rose-400 font-black' : 'text-slate-300'}">${pt.dur}/${pt.maxDur}</span>
+            </div>
+            <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden mt-0.5">
+              <div class="h-full ${barCol} transition-all duration-150" style="width:${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const aliveCount = entrants.filter(e => e.alive).length;
+      const rivalsGrid = entrants.map(e => `
+        <div class="px-2 py-1 rounded-lg text-[10px] font-black flex items-center justify-between ${e.isJiro ? 'bg-sky-900/80 border border-sky-400 text-sky-200' : e.alive ? 'bg-slate-800 text-slate-200' : 'bg-slate-900/60 text-slate-500 line-through'}">
+          <span class="truncate">${e.isJiro ? '👑 ' : ''}${e.name}</span>
+          <span>${e.alive ? '稼働中' : '停止'}</span>
+        </div>
+      `).join('');
+
+      const main = document.getElementById('main-view');
+      main.innerHTML = `
+        <div class="flex-1 flex flex-col justify-between p-3 gap-2 bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-950 text-slate-100 overflow-y-auto">
+          <div class="flex items-center justify-between bg-slate-900/90 border border-amber-400/50 rounded-2xl px-3 py-2 anim-arena">
+            <div>
+              <div class="text-xs font-black text-amber-300">${rank.name}</div>
+              <div class="text-[10px] text-slate-300">冷却・ケース保護軽減率: ${Math.round(mitigation * 100)}%</div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs font-black text-sky-300">残存AI: ${aliveCount} / 10台</div>
+              <div class="text-[10px] text-slate-400">経過ティック: ${tickCount}</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-[10px] font-black text-sky-300 mb-1">🔧 次郎マシンのパーツ耐久度（どれか1つ0で破損敗退！）</div>
+            <div class="grid grid-cols-2 gap-1">
+              ${partBars}
+            </div>
+          </div>
+
+          <div>
+            <div class="text-[10px] font-black text-slate-400 mb-1">出場マシン状況</div>
+            <div class="grid grid-cols-2 gap-1">
+              ${rivalsGrid}
+            </div>
+          </div>
+
+          <div class="bg-slate-900/95 border border-slate-700 rounded-xl p-2 min-h-[72px] flex flex-col justify-between">
+            <div class="text-[10px] text-amber-200 font-bold leading-snug">
+              ${battleLogs.slice(0, 3).map(l => `<div>${l}</div>`).join('')}
+            </div>
+            ${finished ? `
+              <button type="button" onclick="App.finishArena(${finalPlacement}, ${prize}, '${rank.id}')" class="mt-2 w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-xs shadow-lg">
+                結果確定：第${finalPlacement}位（賞金 ¥${prize.toLocaleString()}）→ 次へ <span class="keycap">Enter</span>
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    renderArenaScreen(false);
+
+    arenaTimer = setInterval(() => {
+      tickCount++;
+      AudioSys.se('zap');
+
+      const jiroEntrant = entrants.find(e => e.isJiro);
+      if (jiroEntrant.alive) {
+        for (let hit = 0; hit < 2; hit++) {
+          const k = physicalKeys[Math.floor(Math.random() * physicalKeys.length)];
+          const pt = pc.parts[k];
+          const rawDmg = rank.stress * (0.45 + Math.random() * 0.75);
+          const finalDmg = Math.max(1, Math.round(rawDmg * (1 - mitigation)));
+          pt.dur = Math.max(0, pt.dur - finalDmg);
+          if (pt.dur <= 0) {
+            const sp = getSpec(pt.specId);
+            jiroEntrant.alive = false;
+            elimCounter++;
+            jiroEntrant.elimOrder = elimCounter;
+            AudioSys.se('break');
+            FX.flash('#ef4444');
+            battleLogs.unshift(`💥 悲報！次郎の「${sp.name}」が破損(耐久0)しAI停止！！`);
+            break;
+          }
+        }
+      }
+
+      entrants.forEach(e => {
+        if (e.isJiro || !e.alive) return;
+        const dmg = rank.stress * (0.7 + Math.random() * 1.1);
+        e.hp -= dmg;
+        if (e.hp <= 0) {
+          e.alive = false;
+          elimCounter++;
+          e.elimOrder = elimCounter;
+          battleLogs.unshift(`⚡ 「${e.name}」のパーツが焼き切れAI停止！`);
+        }
+      });
+
+      const aliveList = entrants.filter(e => e.alive);
+      if (!jiroEntrant.alive || aliveList.length <= 1 || tickCount >= 22) {
+        clearInterval(arenaTimer);
+        arenaTimer = null;
+
+        let placement = 1;
+        if (jiroEntrant.alive) {
+          placement = 1;
+        } else {
+          const betterCount = entrants.filter(e => !e.isJiro && (e.alive || e.elimOrder > jiroEntrant.elimOrder)).length;
+          placement = Math.min(10, betterCount + 1);
+        }
+
+        const prize = rank.prizes[placement - 1] || 0;
+        evaluatePC(pc);
+        if (placement === 1) {
+          AudioSys.se('win');
+          FX.confetti();
+          battleLogs.unshift('🏆 優勝！！次郎のAIが最後まで生き残り1位を獲得！');
+        } else {
+          battleLogs.unshift(`📊 決着！次郎は第${placement}位（賞金 ¥${prize.toLocaleString()}）となった！`);
+        }
+        renderArenaScreen(true, placement, prize);
+      } else {
+        renderArenaScreen(false);
+      }
+    }, 340);
+  }
+
+  function finishArena(placement, prize, rankId) {
+    inArena = false;
+    state.money += prize;
+    const rank = RANKS.find(r => r.id === rankId);
+    const firstClear = placement === 1 && !state.clearedRanks[rankId];
+    if (placement === 1) {
+      state.clearedRanks[rankId] = true;
+    }
+
+    addLog(`${rank.name}で第${placement}位！賞金¥${prize.toLocaleString()}を獲得。`);
+    writeSave();
+
+    if (rankId === 'S' && placement === 1) {
+      triggerChampionEndingAdv();
+      return;
+    }
+
+    if (firstClear) {
+      startAdv([
+        { speaker: `次郎（${state.age}歳）`, mood: 'happy', text: `「よっしゃあ！${rank.name}初優勝だ！！賞金¥${prize.toLocaleString()}ゲット！」` },
+        { speaker: `次郎（${state.age}歳）`, mood: 'build', text: '「だが大会の負荷で各パーツの耐久度がかなり削れているな……次のランクに挑む前にしっかり点検しよう！」' }
+      ], () => {
+        currentTab = 'home';
+        advanceWeek();
+      });
+      return;
+    }
+
+    currentTab = 'home';
+    advanceWeek();
+  }
+
+  /* ---------------------- KEYBOARD SHORTCUTS ---------------------- */
+  document.addEventListener('keydown', (e) => {
+    const modalOpen = !document.getElementById('modal-backdrop').classList.contains('hidden');
+    if (modalOpen) {
+      if (e.key === 'Escape') closeModal();
+      return;
+    }
+
+    const k = e.key.toLowerCase();
+    if (k === 'm') {
+      AudioSys.toggleMute();
+      return;
+    }
+
+    if (!state) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (saveExists()) continueGame();
+        else startNewGame();
+      } else if (k === 'n') {
+        startNewGame();
+      } else if (e.key === 'Delete' && saveExists()) {
+        confirmDeleteSave();
+      }
+      return;
+    }
+
+    if (advMode) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        nextAdv();
+      } else if (k === 's') {
+        skipAdv();
+      }
+      return;
+    }
+
+    if (inArena) return;
+
+    if (['1', '2', '3', '4', '5'].includes(e.key)) {
+      const map = { '1': 'home', '2': 'build', '3': 'shop', '4': 'flea', '5': 'battle' };
+      setTab(map[e.key]);
+    } else if (k === 'w' && currentTab === 'home') {
+      manualAdvanceWeek();
+    } else if (e.key === 'Escape') {
+      manualSave();
+    }
+  });
+
+  function boot() {
+    renderTitle();
+  }
+
+  return {
+    boot,
+    startNewGame,
+    continueGame,
+    confirmDeleteSave,
+    setTab,
+    nextAdv,
+    skipAdv,
+    manualAdvanceWeek,
+    manualSave,
+    openPcInBuilder,
+    addNewPcSlot,
+    selectPcSlot,
+    openPartPicker,
+    equipPart,
+    unequipPart,
+    disassemblePc,
+    trashPcOrParts,
+    trashCurrentPc,
+    trashInventoryItem,
+    selectShop,
+    setShopSubMode,
+    updateBtoPart,
+    orderBtoPc,
+    buyMarketItem,
+    toggleFleaSelect,
+    updateFleaPrice,
+    packPcForListing,
+    createFleaListing,
+    cancelListing,
+    selectBattlePc,
+    enterTournament,
+    finishArena
+  };
+})();
+
+window.onload = () => App.boot();
+</script>
+</body>
+</html>
